@@ -12,4 +12,9 @@ nonisolated enum FormatadorDeMoeda {
     static func textoAbsoluto(_ valor: Decimal) -> String {
         texto(valor < .zero ? -valor : valor)
     }
+
+    /// Euros inteiros para pares "121 / 160 €" — o € escreve-se uma vez, no fim.
+    static func textoEmEurosInteiros(_ valor: Decimal) -> String {
+        "\((valor as NSDecimalNumber).intValue)"
+    }
 }

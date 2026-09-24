@@ -20,6 +20,7 @@ struct HojeView: View {
 
     @State private var viewModel = HojeViewModel()
     @State private var transacaoEmEdicao: Transacao?
+    @State private var mostrarGuardado = false
 
     private var resultado: CalculadoraDoDia.Resultado {
         viewModel.resultadoDoDia(
@@ -45,6 +46,28 @@ struct HojeView: View {
         .scrollDismissesKeyboard(.interactively)
         .animation(.snappy, value: resultado)
         .sensoryFeedback(.success, trigger: viewModel.gravacoes)
+        // O momento verde do sistema visual: confirma a gravação sem interromper.
+        .overlay(alignment: .bottom) {
+            if mostrarGuardado {
+                Label(viewModel.resumoDaGravacao, systemImage: "checkmark")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(Tema.positivo)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Tema.superficie, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Tema.separador, lineWidth: 1))
+                    .shadow(color: .black.opacity(0.06), radius: 10, y: 3)
+                    .padding(.bottom, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .onChange(of: viewModel.gravacoes) {
+            withAnimation(.snappy) { mostrarGuardado = true }
+            Task {
+                try? await Task.sleep(for: .seconds(2.4))
+                withAnimation(.easeOut) { mostrarGuardado = false }
+            }
+        }
         // O composer vive em baixo, como no Figma.
         .safeAreaInset(edge: .bottom) {
             RegistoRapidoView(viewModel: viewModel, categorias: categorias)
@@ -129,7 +152,7 @@ struct HojeView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(Tema.tinta)
                             Spacer()
-                            Text("\(emEurosInteiros(linha.gasto)) / \(emEurosInteiros(linha.orcamento)) €")
+                            Text("\(FormatadorDeMoeda.textoEmEurosInteiros(linha.gasto)) / \(FormatadorDeMoeda.textoEmEurosInteiros(linha.orcamento)) €")
                                 .font(.footnote)
                                 .monospacedDigit()
                                 .foregroundStyle(Tema.tintaSuave)
@@ -141,11 +164,6 @@ struct HojeView: View {
                 }
             }
         }
-    }
-
-    /// "441 / 450 €" como no Figma: euros inteiros, o € uma só vez no fim.
-    private func emEurosInteiros(_ valor: Decimal) -> String {
-        "\((valor as NSDecimalNumber).intValue)"
     }
 
     private func gastoDoMes(em categoria: Categoria) -> Decimal {

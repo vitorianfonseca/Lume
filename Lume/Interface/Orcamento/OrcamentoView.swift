@@ -1,8 +1,8 @@
 import SwiftUI
 import SwiftData
 
-/// Categorias com orçamento mensal e barra de progresso — o único sítio
-/// onde entra o dourado metálico da identidade.
+/// Categorias com orçamento mensal e barras finas, no estilo plano do Hoje:
+/// dourado metálico só quando o orçamento passa os 90%.
 struct OrcamentoView: View {
     @Query(sort: \Categoria.ordem) private var categorias: [Categoria]
     @Query private var transacoes: [Transacao]
@@ -13,7 +13,7 @@ struct OrcamentoView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 32) {
                     if categorias.isEmpty {
                         ContentUnavailableView(
                             "Sem categorias",
@@ -22,15 +22,21 @@ struct OrcamentoView: View {
                         )
                     }
 
-                    ForEach(comOrcamento) { categoria in
-                        CartaoDeOrcamento(categoria: categoria, gasto: gastoDoMes(em: categoria))
+                    if !comOrcamento.isEmpty {
+                        VStack(alignment: .leading, spacing: 20) {
+                            ForEach(comOrcamento) { categoria in
+                                LinhaDeOrcamento(categoria: categoria, gasto: gastoDoMes(em: categoria))
+                            }
+                        }
                     }
 
                     if !semOrcamento.isEmpty {
                         seccaoSemOrcamento
                     }
                 }
-                .padding(20)
+                .padding(.horizontal, Tema.margemDoEcra)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
             }
             .background(Tema.fundo)
             .navigationTitle("Orçamento")
@@ -38,32 +44,34 @@ struct OrcamentoView: View {
     }
 
     private var seccaoSemOrcamento: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 4) {
             Text("Sem orçamento definido")
-                .font(.headline)
-                .foregroundStyle(Tema.tinta)
+                .font(.footnote)
+                .foregroundStyle(Tema.tintaSuave)
 
             VStack(spacing: 0) {
                 ForEach(semOrcamento) { categoria in
                     HStack {
                         Label {
-                            Text(categoria.nome).foregroundStyle(Tema.tinta)
+                            Text(categoria.nome)
+                                .font(.subheadline)
+                                .foregroundStyle(Tema.tinta)
                         } icon: {
-                            Image(systemName: categoria.simbolo).foregroundStyle(categoria.cor)
+                            Image(systemName: categoria.simbolo)
+                                .font(.footnote)
+                                .foregroundStyle(categoria.cor)
                         }
                         Spacer()
                         Text(FormatadorDeMoeda.texto(gastoDoMes(em: categoria)))
+                            .font(.subheadline)
                             .monospacedDigit()
                             .foregroundStyle(Tema.tintaSuave)
                     }
                     .padding(.vertical, 12)
-                    if categoria.persistentModelID != semOrcamento.last?.persistentModelID {
-                        Divider().overlay(Tema.separador)
-                    }
+                    .accessibilityElement(children: .combine)
+                    Divider().overlay(Tema.separador)
                 }
             }
-            .padding(.horizontal, 16)
-            .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
         }
     }
 
@@ -79,26 +87,30 @@ struct OrcamentoView: View {
     }
 }
 
-private struct CartaoDeOrcamento: View {
+private struct LinhaDeOrcamento: View {
     let categoria: Categoria
     let gasto: Decimal
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
                 Label {
-                    Text(categoria.nome).font(.body.weight(.medium)).foregroundStyle(Tema.tinta)
+                    Text(categoria.nome)
+                        .font(.subheadline)
+                        .foregroundStyle(Tema.tinta)
                 } icon: {
-                    Image(systemName: categoria.simbolo).foregroundStyle(categoria.cor)
+                    Image(systemName: categoria.simbolo)
+                        .font(.footnote)
+                        .foregroundStyle(categoria.cor)
                 }
                 Spacer()
-                Text("\(FormatadorDeMoeda.texto(gasto)) / \(FormatadorDeMoeda.texto(orcamento))")
+                Text("\(FormatadorDeMoeda.textoEmEurosInteiros(gasto)) / \(FormatadorDeMoeda.textoEmEurosInteiros(orcamento)) €")
                     .font(.footnote)
                     .monospacedDigit()
                     .foregroundStyle(Tema.tintaSuave)
             }
 
-            barra
+            BarraDeProgresso(fracao: fracao, dourada: fracao >= 0.9, altura: 4)
 
             if fracao > 1 {
                 // Sem alarmes vermelhos: informação, não culpa.
@@ -107,8 +119,6 @@ private struct CartaoDeOrcamento: View {
                     .foregroundStyle(Tema.tintaSuave)
             }
         }
-        .padding(16)
-        .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(categoria.nome): \(FormatadorDeMoeda.texto(gasto)) de \(FormatadorDeMoeda.texto(orcamento))")
     }
@@ -118,18 +128,6 @@ private struct CartaoDeOrcamento: View {
     private var fracao: Double {
         guard orcamento > .zero else { return 0 }
         return (gasto as NSDecimalNumber).doubleValue / (orcamento as NSDecimalNumber).doubleValue
-    }
-
-    private var barra: some View {
-        GeometryReader { geometria in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Tema.separador)
-                Capsule()
-                    .fill(Tema.douradoMetalico)
-                    .frame(width: geometria.size.width * min(fracao, 1))
-            }
-        }
-        .frame(height: 6)
     }
 }
 

@@ -9,8 +9,10 @@ final class HojeViewModel {
     var proposta: PropostaDeTransacao?
     var aInterpretar = false
     var mensagemDeErro: String?
-    /// Incrementado a cada gravação — dispara o haptic na view.
+    /// Incrementado a cada gravação — dispara o haptic e o toast na view.
     private(set) var gravacoes = 0
+    /// "Guardado · Restauração a 61%" quando a categoria tem orçamento.
+    private(set) var resumoDaGravacao = "Guardado"
 
     private let interpretador: any InterpretadorDeDespesas
 
@@ -56,9 +58,25 @@ final class HojeViewModel {
         contexto.insert(transacao)
         try? contexto.save()
 
+        resumoDaGravacao = resumo(de: transacao)
         gravacoes += 1
         self.proposta = nil
         textoDeRegisto = ""
+    }
+
+    /// O momento "Guardado · Orçamento a 61%" do sistema visual.
+    private func resumo(de transacao: Transacao) -> String {
+        guard transacao.tipo == .despesa,
+              let categoria = transacao.categoria,
+              let orcamento = categoria.orcamentoMensal, orcamento > .zero
+        else { return "Guardado" }
+
+        let calendario = Calendar.current
+        let gasto = (categoria.transacoes ?? [])
+            .filter { $0.tipo == .despesa && calendario.isDate($0.data, equalTo: transacao.data, toGranularity: .month) }
+            .reduce(Decimal.zero) { $0 + $1.valor }
+        let percentagem = ((gasto / orcamento * 100) as NSDecimalNumber).intValue
+        return "Guardado · \(categoria.nome) a \(percentagem)%"
     }
 
     /// Ponte entre os modelos SwiftData e a calculadora pura.
