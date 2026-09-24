@@ -21,9 +21,22 @@
 		B3495A2B3063F0210020D159 /* LumeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LumeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B3495A83306535DC0020D159 /* Exceptions for "Lume" folder in "Lume" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B3495A183063EF4B0020D159 /* Lume */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B3495A1B3063EF4B0020D159 /* Lume */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B3495A83306535DC0020D159 /* Exceptions for "Lume" folder in "Lume" target */,
+			);
 			path = Lume;
 			sourceTree = "<group>";
 		};
@@ -303,6 +316,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Lume/Lume.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8WHU7TFV85;
@@ -311,6 +325,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Lume/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Lume;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "O microfone serve para ditares despesas em vez de as escreveres.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "A Lume transforma o que dizes num registo de despesa. O reconhecimento é feito no dispositivo.";
@@ -351,6 +366,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Lume/Lume.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8WHU7TFV85;
@@ -359,6 +375,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Lume/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Lume;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "O microfone serve para ditares despesas em vez de as escreveres.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "A Lume transforma o que dizes num registo de despesa. O reconhecimento é feito no dispositivo.";
