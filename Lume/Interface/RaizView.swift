@@ -6,11 +6,19 @@ import UIKit
 /// Ícones nunca em preto puro: dourado na seleção, cinzento quente no resto.
 struct RaizView: View {
     enum Separador: Hashable {
-        case hoje, movimentos, orcamento, definicoes
+        case hoje, movimentos, contas, orcamento, definicoes
     }
 
     @State private var separador = Separador.hoje
     @Environment(\.colorScheme) private var esquema
+    @Query(sort: \Recorrente.diaDoMes) private var recorrentes: [Recorrente]
+
+    /// Muda quando as recorrentes mudam — reagenda as notificações.
+    private var assinaturaDasRecorrentes: String {
+        recorrentes
+            .map { "\($0.nome)|\($0.diaDoMes)|\($0.ativa)|\($0.valor)" }
+            .joined(separator: ";")
+    }
 
     init() {
         // O SwiftUI não expõe a cor dos itens não selecionados nem o tamanho
@@ -52,6 +60,11 @@ struct RaizView: View {
             } label: {
                 Label { Text("Movimentos") } icon: { simbolo("list.bullet", ativo: separador == .movimentos) }
             }
+            Tab(value: .contas) {
+                ContasView()
+            } label: {
+                Label { Text("Contas") } icon: { simbolo("creditcard", ativo: separador == .contas) }
+            }
             Tab(value: .orcamento) {
                 OrcamentoView()
             } label: {
@@ -64,6 +77,9 @@ struct RaizView: View {
             }
         }
         .tint(Tema.dourado)
+        .task(id: assinaturaDasRecorrentes) {
+            await NotificadorDeRecorrentes.agendar(recorrentes)
+        }
     }
 
     /// Símbolo mais pequeno com a cor "cozinhada" na imagem — a tab bar

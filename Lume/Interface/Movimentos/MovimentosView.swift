@@ -1,5 +1,7 @@
-import SwiftUI
+import CoreTransferable
 import SwiftData
+import SwiftUI
+import UniformTypeIdentifiers
 
 /// Lista completa de movimentos, agrupada por dia, com pesquisa e apagar por swipe.
 struct MovimentosView: View {
@@ -68,6 +70,19 @@ struct MovimentosView: View {
             .background(Tema.fundo)
             .navigationTitle("Movimentos")
             .searchable(text: $pesquisa, prompt: "Descrição, loja ou categoria")
+            .toolbar {
+                if !transacoes.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(
+                            item: csvDosMovimentos,
+                            preview: SharePreview("Movimentos da Lume")
+                        ) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        .accessibilityLabel("Exportar movimentos em CSV")
+                    }
+                }
+            }
             .sheet(item: $transacaoEmEdicao) { transacao in
                 CartaoDeConfirmacaoView(
                     proposta: PropostaDeTransacao(de: transacao),
@@ -102,6 +117,46 @@ struct MovimentosView: View {
     private func apagar(_ indices: IndexSet, de grupo: [Transacao]) {
         indices.map { grupo[$0] }.forEach(contexto.delete)
         try? contexto.save()
+    }
+
+    // MARK: - Exportação
+
+    /// CSV à portuguesa: separador ';' e vírgula decimal, como o Excel cá espera.
+    private var csvDosMovimentos: MovimentosCSV {
+        var linhas = ["data;tipo;descricao;loja;categoria;conta;origem;valor"]
+        for transacao in transacoes {
+            let campos = [
+                transacao.data.formatted(.iso8601.year().month().day()),
+                transacao.tipo.rawValue,
+                transacao.descricao,
+                transacao.loja ?? "",
+                transacao.categoria?.nome ?? "",
+                transacao.conta?.nome ?? "",
+                transacao.origem.rawValue,
+                "\(transacao.valor)".replacingOccurrences(of: ".", with: ","),
+            ].map(escapar)
+            linhas.append(campos.joined(separator: ";"))
+        }
+        return MovimentosCSV(texto: linhas.joined(separator: "\n"))
+    }
+
+    private func escapar(_ campo: String) -> String {
+        guard campo.contains(";") || campo.contains("\"") || campo.contains("\n") else {
+            return campo
+        }
+        return "\"\(campo.replacingOccurrences(of: "\"", with: "\"\""))\""
+    }
+}
+
+/// Ficheiro CSV partilhável via ShareLink.
+private struct MovimentosCSV: Transferable {
+    let texto: String
+
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(exportedContentType: .commaSeparatedText) { csv in
+            Data(csv.texto.utf8)
+        }
+        .suggestedFileName("lume-movimentos.csv")
     }
 }
 
