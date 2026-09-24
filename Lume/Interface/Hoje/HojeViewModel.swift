@@ -88,7 +88,7 @@ final class HojeViewModel {
             loja: proposta.loja,
             data: proposta.data,
             categoria: categorias.first { $0.nome == proposta.nomeDaCategoria },
-            conta: contas.first,
+            conta: contas.first(where: \.principal) ?? contas.first,
             origem: origemDoRegisto
         )
         contexto.insert(transacao)

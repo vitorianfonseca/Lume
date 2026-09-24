@@ -163,14 +163,28 @@ struct DefinicoesView: View {
     // MARK: - Secções
 
     private var seccaoContas: some View {
-        Section("Contas") {
+        Section {
             ForEach(contas) { conta in
-                LabeledContent {
-                    Text(FormatadorDeMoeda.texto(conta.saldoAtual))
-                        .monospacedDigit()
+                Button {
+                    tornarPrincipal(conta)
                 } label: {
-                    Text(conta.nome)
-                    Text(conta.tipo.nome)
+                    LabeledContent {
+                        Text(FormatadorDeMoeda.texto(conta.saldoAtual))
+                            .monospacedDigit()
+                            .foregroundStyle(Tema.tintaSuave)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(conta.nome)
+                                .foregroundStyle(Tema.tinta)
+                            if conta.principal {
+                                Image(systemName: "star.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(Tema.dourado)
+                                    .accessibilityLabel("Conta principal")
+                            }
+                        }
+                        Text(conta.tipo.nome)
+                    }
                 }
             }
             .onDelete { indices in
@@ -180,8 +194,20 @@ struct DefinicoesView: View {
 
             Button("Adicionar conta") { mostrarNovaConta = true }
                 .foregroundStyle(Tema.douradoEscuro)
+        } header: {
+            Text("Contas")
+        } footer: {
+            Text("Toca numa conta para a tornares principal: é o cartão dourado e a conta usada nos novos registos.")
         }
         .listRowBackground(Tema.superficie)
+    }
+
+    /// Só pode haver uma principal — o toque move a estrela.
+    private func tornarPrincipal(_ conta: Conta) {
+        for outra in contas {
+            outra.principal = outra.persistentModelID == conta.persistentModelID
+        }
+        try? contexto.save()
     }
 
     private var seccaoCategorias: some View {

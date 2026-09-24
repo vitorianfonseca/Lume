@@ -20,6 +20,8 @@ final class Conta {
     var nome: String = ""
     var tipoRaw: String = TipoConta.aOrdem.rawValue
     var saldoInicial: Decimal = Decimal.zero
+    /// A conta usada por defeito nos novos registos — o cartão dourado.
+    var principal: Bool = false
 
     @Relationship(deleteRule: .nullify, inverse: \Transacao.conta)
     var transacoes: [Transacao]?
@@ -37,9 +39,10 @@ final class Conta {
         }
     }
 
-    init(nome: String, tipo: TipoConta = .aOrdem, saldoInicial: Decimal = .zero) {
+    init(nome: String, tipo: TipoConta = .aOrdem, saldoInicial: Decimal = .zero, principal: Bool = false) {
         self.nome = nome
         self.tipoRaw = tipo.rawValue
         self.saldoInicial = saldoInicial
+        self.principal = principal
     }
 }

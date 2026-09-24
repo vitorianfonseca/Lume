@@ -9,8 +9,13 @@ struct ContasView: View {
 
     @State private var contaSelecionada: PersistentIdentifier?
 
+    /// A principal (o cartão dourado) vem sempre à frente do carrossel.
+    private var ordenadas: [Conta] {
+        contas.sorted { ($0.principal ? 0 : 1, $0.nome) < ($1.principal ? 0 : 1, $1.nome) }
+    }
+
     private var contaAtual: Conta? {
-        contas.first { $0.persistentModelID == contaSelecionada } ?? contas.first
+        contas.first { $0.persistentModelID == contaSelecionada } ?? ordenadas.first
     }
 
     var body: some View {
@@ -25,7 +30,7 @@ struct ContasView: View {
                         )
                     } else {
                         carrossel
-                        movimentosDaConta
+                        resumoDaConta
                     }
                 }
                 .padding(.top, 8)
@@ -37,15 +42,17 @@ struct ContasView: View {
     }
 
     /// Um cartão por página, com paragem alinhada — como folhear a carteira.
+    /// A folga vertical dá espaço à sombra, que a ScrollView cortaria.
     private var carrossel: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 14) {
-                ForEach(contas) { conta in
+                ForEach(ordenadas) { conta in
                     CartaoDeConta(conta: conta)
                         .containerRelativeFrame(.horizontal)
                         .id(conta.persistentModelID)
                 }
             }
+            .padding(.vertical, 18)
             .scrollTargetLayout()
         }
         .scrollTargetBehavior(.viewAligned)
@@ -54,36 +61,61 @@ struct ContasView: View {
         .contentMargins(.horizontal, Tema.margemDoEcra, for: .scrollContent)
     }
 
+    // MARK: - Resumo do mês da conta
+
+    /// O que este separador acrescenta ao Movimentos: a visão por conta.
+    /// O extrato completo e pesquisável vive no separador Movimentos.
     @ViewBuilder
-    private var movimentosDaConta: some View {
+    private var resumoDaConta: some View {
         if let conta = contaAtual {
-            let daConta = Array(
-                transacoes
-                    .filter { $0.conta?.persistentModelID == conta.persistentModelID }
-                    .prefix(6)
-            )
+            let resumo = resumoDoMes(de: conta)
             VStack(alignment: .leading, spacing: 4) {
-                Text("Movimentos — \(conta.nome)")
+                Text("Este mês — \(conta.nome)")
                     .font(.footnote)
                     .foregroundStyle(Tema.tintaSuave)
 
-                if daConta.isEmpty {
-                    Text("Ainda sem movimentos nesta conta.")
-                        .font(.footnote)
-                        .foregroundStyle(Tema.tintaSuave)
-                        .padding(.top, 8)
-                } else {
-                    VStack(spacing: 0) {
-                        ForEach(daConta) { transacao in
-                            LinhaDeTransacao(transacao: transacao)
-                            Divider().overlay(Tema.separador)
-                        }
-                    }
+                VStack(spacing: 0) {
+                    linhaDeResumo("Recebido", "+\(FormatadorDeMoeda.texto(resumo.recebido))", cor: Tema.positivo)
+                    Divider().overlay(Tema.separador)
+                    linhaDeResumo("Gasto", "−\(FormatadorDeMoeda.texto(resumo.gasto))", cor: Tema.tinta)
+                    Divider().overlay(Tema.separador)
+                    linhaDeResumo("Movimentos", "\(resumo.quantos)", cor: Tema.tinta)
                 }
+
+                Text("O extrato completo, com pesquisa, vive no separador Movimentos.")
+                    .font(.caption)
+                    .foregroundStyle(Tema.tintaSuave)
+                    .padding(.top, 10)
             }
             .padding(.horizontal, Tema.margemDoEcra)
             .animation(.snappy, value: conta.persistentModelID)
         }
+    }
+
+    private func linhaDeResumo(_ titulo: String, _ valor: String, cor: Color) -> some View {
+        HStack {
+            Text(titulo)
+                .font(.subheadline)
+                .foregroundStyle(Tema.tinta)
+            Spacer()
+            Text(valor)
+                .font(.subheadline)
+                .monospacedDigit()
+                .foregroundStyle(cor)
+        }
+        .padding(.vertical, 12)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func resumoDoMes(de conta: Conta) -> (gasto: Decimal, recebido: Decimal, quantos: Int) {
+        let calendario = Calendar.current
+        let doMes = transacoes.filter { transacao in
+            transacao.conta?.persistentModelID == conta.persistentModelID
+                && calendario.isDate(transacao.data, equalTo: .now, toGranularity: .month)
+        }
+        let gasto = doMes.filter { $0.tipo == .despesa }.reduce(Decimal.zero) { $0 + $1.valor }
+        let recebido = doMes.filter { $0.tipo == .receita }.reduce(Decimal.zero) { $0 + $1.valor }
+        return (gasto, recebido, doMes.count)
     }
 }
 
@@ -135,7 +167,7 @@ struct CartaoDeConta: View {
             .padding(.top, 12)
         }
         .padding(20)
-        .foregroundStyle(.white)
+        .foregroundStyle(corDaTinta)
         .frame(maxWidth: .infinity)
         .aspectRatio(1.586, contentMode: .fit)
         .background { fundo }
@@ -144,9 +176,15 @@ struct CartaoDeConta: View {
             RoundedRectangle(cornerRadius: 18)
                 .strokeBorder(.white.opacity(0.14), lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.28), radius: 18, y: 12)
+        // Sombra curta e suave, como um cartão pousado na mesa.
+        .shadow(color: .black.opacity(0.18), radius: 10, y: 6)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(conta.nome), \(conta.tipo.nome), saldo \(FormatadorDeMoeda.texto(conta.saldoAtual))")
+    }
+
+    /// No cartão dourado a tinta é escura e fixa; nos restantes é branca.
+    private var corDaTinta: Color {
+        conta.principal ? Color(hex: "38342E") : .white
     }
 
     private var fundo: some View {
@@ -165,10 +203,20 @@ struct CartaoDeConta: View {
         }
     }
 
-    /// O módulo EMV: dourado polido com as linhas de contacto.
+    /// O módulo EMV com as linhas de contacto. No cartão dourado o chip
+    /// é bronze escuro, para não se fundir com o plástico.
+    private var corDoChip: LinearGradient {
+        conta.principal
+            ? LinearGradient(
+                colors: [Color(hex: "5E4718"), Color(hex: "8C6A2C"), Color(hex: "B8934A")],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+            : Tema.douradoPolido
+    }
+
     private var chip: some View {
         RoundedRectangle(cornerRadius: 6)
-            .fill(Tema.douradoPolido)
+            .fill(corDoChip)
             .frame(width: 46, height: 34)
             .overlay {
                 ZStack {
@@ -199,6 +247,10 @@ struct CartaoDeConta: View {
     ]
 
     private var paleta: [Color] {
+        // A conta principal usa o dourado da identidade — é o cartão de ouro.
+        if conta.principal {
+            return [Color(hex: "8C6A2C"), Color(hex: "C9A45A"), Color(hex: "E8CE8F")]
+        }
         let semente = conta.nome.unicodeScalars.reduce(0) { $0 + Int($1.value) }
         return Self.paletas[semente % Self.paletas.count]
     }

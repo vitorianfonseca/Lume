@@ -34,7 +34,7 @@ enum DadosDeExemplo {
 
         // MARK: Contas
 
-        let revolut = Conta(nome: "Revolut", tipo: .aOrdem, saldoInicial: eur("342.18"))
+        let revolut = Conta(nome: "Revolut", tipo: .aOrdem, saldoInicial: eur("342.18"), principal: true)
         let cgd = Conta(nome: "CGD", tipo: .aOrdem, saldoInicial: eur("1580.00"))
         let dinheiro = Conta(nome: "Dinheiro", tipo: .dinheiro, saldoInicial: eur("35.00"))
 
