@@ -312,6 +312,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Lume;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "O microfone serve para ditares despesas em vez de as escreveres.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "A Lume transforma o que dizes num registo de despesa. O reconhecimento é feito no dispositivo.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -358,6 +360,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Lume;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "O microfone serve para ditares despesas em vez de as escreveres.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "A Lume transforma o que dizes num registo de despesa. O reconhecimento é feito no dispositivo.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
