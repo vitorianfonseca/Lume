@@ -11,6 +11,7 @@ struct RaizView: View {
 
     @State private var separador = Separador.hoje
     @Environment(\.colorScheme) private var esquema
+    @AppStorage("viuBoasVindas") private var viuBoasVindas = false
     @Query(sort: \Recorrente.diaDoMes) private var recorrentes: [Recorrente]
 
     /// Muda quando as recorrentes mudam — reagenda as notificações.
@@ -80,6 +81,16 @@ struct RaizView: View {
         .task(id: assinaturaDasRecorrentes) {
             await NotificadorDeRecorrentes.agendar(recorrentes)
         }
+        .fullScreenCover(isPresented: mostrarBoasVindas) {
+            BoasVindasView { viuBoasVindas = true }
+        }
+    }
+
+    private var mostrarBoasVindas: Binding<Bool> {
+        Binding(
+            get: { !viuBoasVindas },
+            set: { if !$0 { viuBoasVindas = true } }
+        )
     }
 
     /// Símbolo mais pequeno com a cor "cozinhada" na imagem — a tab bar

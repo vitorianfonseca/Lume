@@ -33,7 +33,7 @@ struct HojeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
-                NumeroDiarioView(resultado: resultado, aoDefinirRendimento: aoDefinirRendimento)
+                heroDoDia
                 orcamentosPorCategoria
                 ultimosMovimentos
                 proximasContasFixas
@@ -120,6 +120,61 @@ struct HojeView: View {
             get: { viewModel.proposta != nil },
             set: { if !$0 { viewModel.proposta = nil } }
         )
+    }
+
+    // MARK: - Hero do dia
+
+    private var saudacao: String {
+        switch Calendar.current.component(.hour, from: .now) {
+        case 6..<13: "Bom dia"
+        case 13..<20: "Boa tarde"
+        default: "Boa noite"
+        }
+    }
+
+    /// O número do dia num cartão de boas-vindas, com o sol da Lume
+    /// a rodar devagarinho no canto.
+    private var heroDoDia: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(saudacao)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(Tema.tinta)
+                // Formatar para String primeiro: o Text(_, format:) ignora
+                // o locale do FormatStyle e usa o do ambiente.
+                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(FormatadorDeMoeda.localidade)))
+                    .font(.footnote)
+                    .foregroundStyle(Tema.tintaSuave)
+            }
+
+            NumeroDiarioView(resultado: resultado, aoDefinirRendimento: aoDefinirRendimento)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            ZStack(alignment: .topTrailing) {
+                RoundedRectangle(cornerRadius: Tema.Raio.cartao)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(claro: 0xFCFBF8, escuro: 0x1B1B1F),
+                                Color(claro: 0xF3F0E9, escuro: 0x141417),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                SolDeLume()
+                    .offset(x: 26, y: -26)
+                    .opacity(0.55)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: Tema.Raio.cartao)
+                .strokeBorder(Tema.separador, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 14, y: 6)
     }
 
     // MARK: - Orçamentos por categoria

@@ -97,6 +97,8 @@ struct RegistoRapidoView: View {
                 .foregroundStyle(gravador.aGravar ? Tema.dourado : Tema.tintaSuave)
                 .frame(width: 30, height: 30)
                 .contentTransition(.symbolEffect(.replace))
+                // A onda "respira" enquanto grava.
+                .symbolEffect(.variableColor.iterative, isActive: gravador.aGravar)
         }
         .accessibilityLabel(gravador.aGravar ? "Parar e registar o que disseste" : "Ditar despesa")
     }

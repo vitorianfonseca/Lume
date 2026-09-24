@@ -49,6 +49,13 @@ struct ContasView: View {
                 ForEach(ordenadas) { conta in
                     CartaoDeConta(conta: conta)
                         .containerRelativeFrame(.horizontal)
+                        // Os cartões inclinam em 3D ao deslizar, como numa carteira.
+                        .scrollTransition(axis: .horizontal) { conteudo, fase in
+                            conteudo
+                                .rotation3DEffect(.degrees(fase.value * -10), axis: (x: 0, y: 1, z: 0))
+                                .scaleEffect(fase.isIdentity ? 1 : 0.94)
+                                .opacity(fase.isIdentity ? 1 : 0.75)
+                        }
                         .id(conta.persistentModelID)
                 }
             }
