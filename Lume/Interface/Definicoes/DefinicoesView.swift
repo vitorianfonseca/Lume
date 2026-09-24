@@ -14,6 +14,7 @@ struct DefinicoesView: View {
     @State private var mostrarNovaRecorrente = false
     /// 0 = mês atual; recuar 1 para corrigir, avançar até 6 para planear.
     @State private var deslocacaoDeMes = 0
+    @State private var chaveClaude = CofreDeChaves.ler(CofreDeChaves.contaClaude) ?? ""
     @State private var confirmarApagarMovimentos = false
     @State private var confirmarReposicao = false
 
@@ -24,6 +25,7 @@ struct DefinicoesView: View {
                 seccaoContas
                 seccaoCategorias
                 seccaoRecorrentes
+                seccaoPremium
                 seccaoDados
             }
             .scrollContentBackground(.hidden)
@@ -101,6 +103,28 @@ struct DefinicoesView: View {
             Text("Rendimento e poupança")
         } footer: {
             Text("O número diário nasce daqui: rendimento − poupança − contas fixas − o que já gastaste. Começaste a meio do mês? Indica só o que ainda esperas receber até ao fim do mês — a Lume divide sempre pelos dias que faltam. Usa as setas para planear o próximo mês.")
+        }
+        .listRowBackground(Tema.superficie)
+    }
+
+    // MARK: - Premium
+
+    private var seccaoPremium: some View {
+        Section {
+            SecureField("Chave da API (sk-ant-…)", text: $chaveClaude)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .onChange(of: chaveClaude) {
+                    // Guardar texto vazio equivale a apagar do Keychain.
+                    CofreDeChaves.guardar(
+                        chaveClaude.trimmingCharacters(in: .whitespacesAndNewlines),
+                        para: CofreDeChaves.contaClaude
+                    )
+                }
+        } header: {
+            Text("Premium — Claude")
+        } footer: {
+            Text("Com uma chave da Anthropic, o Claude passa a interpretar os registos, com os interpretadores locais como recurso. A chave fica no Keychain do aparelho e as contas continuam a ser feitas pela app.")
         }
         .listRowBackground(Tema.superficie)
     }

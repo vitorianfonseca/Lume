@@ -81,9 +81,21 @@ nonisolated struct InterpretadorComRecurso: InterpretadorDeDespesas {
 }
 
 nonisolated enum FabricaDeInterpretadores {
-    /// Foundation Models quando o dispositivo o suporta, senão regras.
-    /// No Premium, o Claude entra aqui como mais uma implementação.
+    /// Claude (Premium) quando há chave guardada, com os interpretadores
+    /// locais como recurso; sem chave, Foundation Models quando o dispositivo
+    /// o suporta; as regras são sempre a rede de segurança final.
     static func padrao() -> any InterpretadorDeDespesas {
+        let local = interpretadorLocal()
+        if let chave = CofreDeChaves.ler(CofreDeChaves.contaClaude), !chave.isEmpty {
+            return InterpretadorComRecurso(
+                principal: InterpretadorClaude(chave: chave),
+                alternativa: local
+            )
+        }
+        return local
+    }
+
+    private static func interpretadorLocal() -> any InterpretadorDeDespesas {
         switch SystemLanguageModel.default.availability {
         case .available:
             InterpretadorComRecurso(
