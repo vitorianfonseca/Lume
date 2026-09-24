@@ -1,0 +1,20 @@
+<svg width="70" height="60" viewBox="0 0 70 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="70" height="60" fill="#F5F5F5"/>
+<g id="Identidade / Sistema visual">
+<g id="Lume-mark-3">
+<path id="Vector" d="M0 42.4286L14.1429 7.85714L25.1429 12.5714L11 47.1429L0 42.4286ZM20.4286 55L42.4286 0L55 4.71429L33 59.7143L20.4286 55ZM44 44L58.1429 11L69.1429 15.7143L55 48.7143L44 44Z" fill="url(#paint0_linear_0_1)"/>
+<path id="Vector_2" opacity="0.7" d="M0 42.4286L14.1429 7.85714L17.2857 9.42857L3.14286 44L0 42.4286ZM20.4286 55L42.4286 0L45.5714 1.57143L23.5714 56.5714L20.4286 55ZM44 44L58.1429 11L61.2857 12.5714L47.1429 45.5714L44 44Z" fill="#F3E3B3"/>
+<path id="Vector_3" opacity="0.4" d="M11 47.1429L25.1429 12.5714L22 11L7.85715 45.5714L11 47.1429ZM33 59.7143L55 4.71428L51.8571 3.14285L29.8571 58.1429L33 59.7143ZM55 48.7143L69.1429 15.7143L66 14.1429L51.8571 47.1429L55 48.7143Z" fill="#7A5A22"/>
+</g>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_1" x1="0" y1="59.7143" x2="59.0783" y2="-8.69214" gradientUnits="userSpaceOnUse">
+<stop stop-color="#7A5A22"/>
+<stop offset="0.18" stop-color="#C9A45A"/>
+<stop offset="0.34" stop-color="#F3E3B3"/>
+<stop offset="0.48" stop-color="#D4AD5F"/>
+<stop offset="0.66" stop-color="#8C6A2C"/>
+<stop offset="1" stop-color="#E2C27D"/>
+</linearGradient>
+</defs>
+</svg>
