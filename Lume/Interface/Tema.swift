@@ -4,13 +4,18 @@ import UIKit
 /// Paleta e geometria da Lume, extraídas do sistema visual (site/identidade):
 /// marfim, tinta, cinzentos quentes, linhas finas e dourado só em acentos.
 nonisolated enum Tema {
-    // Novo design (24/09): fundo creme quente com cartões brancos.
-    static let fundo = Color(claro: 0xF5F1E8, escuro: 0x111214)
+    // Novo design (24/09) — cores medidas pixel a pixel no PNG do Figma:
+    // fundo e cartões brancos puros, tinta "espresso" quente.
+    static let fundo = Color(claro: 0xFFFFFF, escuro: 0x111214)
     static let superficie = Color(claro: 0xFFFFFF, escuro: 0x1A1A1E)
-    /// Bege dos avatares e chips neutros do novo design.
-    static let bege = Color(claro: 0xEDE7D9, escuro: 0x2B2B27)
-    static let tinta = Color(claro: 0x141416, escuro: 0xF2F0EB)
-    static let tintaSuave = Color(claro: 0x716D65, escuro: 0xA9A49A)
+    /// Bege dos avatares e chips neutros.
+    static let bege = Color(claro: 0xF0EAE0, escuro: 0x2B2B27)
+    /// Areia dos painéis grandes (voz e talão).
+    static let areia = Color(claro: 0xF7EEDB, escuro: 0x26241E)
+    /// Dourado claro dos botões de ação (texto escuro por cima).
+    static let douradoBotao = Color(claro: 0xE8CD91, escuro: 0xC9A45A)
+    static let tinta = Color(claro: 0x302B24, escuro: 0xF2F0EB)
+    static let tintaSuave = Color(claro: 0x7A756C, escuro: 0xA9A49A)
     /// Preto fosco quente para ícones e setas — nunca preto puro.
     static let tintaFosca = Color(claro: 0x38342E, escuro: 0xE8E4DC)
     static let dourado = Color(claro: 0xC9A45A, escuro: 0xC9A45A)

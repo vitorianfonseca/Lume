@@ -75,7 +75,7 @@ struct RaizView: View {
             Tab(value: .planear) {
                 OrcamentoView()
             } label: {
-                Label { Text("Planear") } icon: { simbolo("square.grid.2x2", ativo: separador == .planear) }
+                Label { Text("Planear") } icon: { simbolo("creditcard", ativo: separador == .planear) }
             }
             Tab(value: .perfil) {
                 DefinicoesView()
@@ -112,10 +112,11 @@ struct RaizView: View {
         return Image(uiImage: imagem)
     }
 
-    /// O "+" central do novo design: quadrado dourado, sempre em destaque.
+    /// O "+" central do novo design: quadrado dourado claro (#E8CD91),
+    /// a cor medida no frame — sempre em destaque.
     private var simboloDeRegistar: Image {
         let configuracao = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
-        let ouro = UIColor(red: 0xC9 / 255, green: 0xA4 / 255, blue: 0x5A / 255, alpha: 1)
+        let ouro = UIColor(red: 0xE8 / 255, green: 0xCD / 255, blue: 0x91 / 255, alpha: 1)
         let imagem = (UIImage(systemName: "plus.square.fill", withConfiguration: configuracao) ?? UIImage())
             .withTintColor(ouro, renderingMode: .alwaysOriginal)
         return Image(uiImage: imagem)

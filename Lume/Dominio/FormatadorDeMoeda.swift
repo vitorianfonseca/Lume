@@ -5,7 +5,28 @@ nonisolated enum FormatadorDeMoeda {
     static let localidade = Locale(identifier: "pt_PT")
 
     static func texto(_ valor: Decimal) -> String {
-        valor.formatted(.currency(code: "EUR").locale(localidade))
+        agrupado(valor.formatted(.currency(code: "EUR").locale(localidade)))
+    }
+
+    /// O CLDR do pt-PT só agrupa a partir de 10 000 — mas o design escreve
+    /// "1 092,90 €". Insere o espaço fino a cada 3 dígitos da parte inteira.
+    private static func agrupado(_ original: String) -> String {
+        guard let fim = original.firstIndex(of: ",") else { return original }
+        var inicio = fim
+        while inicio > original.startIndex,
+              original[original.index(before: inicio)].isNumber {
+            inicio = original.index(before: inicio)
+        }
+        let digitos = Array(original[inicio..<fim])
+        guard digitos.count > 3 else { return original }
+        var resultado = ""
+        for (indice, digito) in digitos.enumerated() {
+            if indice > 0, (digitos.count - indice) % 3 == 0 {
+                resultado.append("\u{00A0}")
+            }
+            resultado.append(digito)
+        }
+        return original.replacingCharacters(in: inicio..<fim, with: resultado)
     }
 
     /// Valor sempre positivo, para frases como "Hoje já passaste 6,20 €".

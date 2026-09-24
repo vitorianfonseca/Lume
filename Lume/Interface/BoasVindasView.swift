@@ -29,7 +29,7 @@ struct BoasVindasView: View {
                     .foregroundStyle(Color(hex: "38342E"))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Tema.douradoPolido, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
+                    .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
             }
             .padding(.horizontal, Tema.margemDoEcra)
             .padding(.bottom, 24)
@@ -44,7 +44,12 @@ struct BoasVindasView: View {
             texto: "Diz o que gastaste. O resto é connosco."
         ) {
             VStack(spacing: 28) {
-                SolDeLume()
+                // A logo nova da Lume — o símbolo dourado do Figma.
+                Image("SimboloLume")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 120, height: 120)
+                    .shadow(color: Tema.dourado.opacity(0.35), radius: 24, y: 10)
                 Image("MarcaLume")
                     .resizable()
                     .scaledToFit()
@@ -68,7 +73,7 @@ struct BoasVindasView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color(hex: "38342E"))
                         .frame(width: 30, height: 30)
-                        .background(Tema.douradoPolido, in: Circle())
+                        .background(Tema.douradoBotao, in: Circle())
                 }
                 .padding(.horizontal, 18)
                 .padding(.vertical, 12)

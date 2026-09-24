@@ -31,7 +31,7 @@ struct HojeView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 26) {
+            VStack(alignment: .leading, spacing: 20) {
                 cabecalho
                 cartaoDoMes
                 acoesRapidas
@@ -39,8 +39,8 @@ struct HojeView: View {
                 ultimosMovimentos
             }
             .padding(.horizontal, Tema.margemDoEcra)
-            .padding(.top, 8)
-            .padding(.bottom, 24)
+            .padding(.top, 4)
+            .padding(.bottom, 16)
         }
         .background(Tema.fundo)
         .animation(.snappy, value: resultado)
@@ -69,10 +69,27 @@ struct HojeView: View {
 
     // MARK: - Cabeçalho
 
+    private var dataDoCabecalho: String {
+        let localidade = FormatadorDeMoeda.localidade
+        let semana = Date.now.formatted(.dateTime.weekday(.wide).locale(localidade))
+        let dia = Date.now.formatted(.dateTime.day().locale(localidade))
+        let mes = Date.now.formatted(.dateTime.month(.wide).locale(localidade))
+        return "\(semana), \(dia) \(mes)".uppercased()
+    }
+
+    /// "SETEMBRO 2026", sem o "de" — igual ao frame.
+    private var mesDoCartao: String {
+        let localidade = FormatadorDeMoeda.localidade
+        let mes = Date.now.formatted(.dateTime.month(.wide).locale(localidade))
+        let ano = Date.now.formatted(.dateTime.year().locale(localidade))
+        return "\(mes) \(ano)".uppercased()
+    }
+
     private var cabecalho: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(FormatadorDeMoeda.localidade)).uppercased())
+                // "QUINTA-FEIRA, 24 SETEMBRO", exatamente como no Figma (sem "de").
+                Text(dataDoCabecalho)
                     .font(.caption2.weight(.semibold))
                     .kerning(1.2)
                     .foregroundStyle(Tema.tintaSuave)
@@ -81,14 +98,11 @@ struct HojeView: View {
                     .foregroundStyle(Tema.tinta)
             }
             Spacer()
-            Circle()
-                .fill(Tema.douradoPolido)
-                .frame(width: 36, height: 36)
-                .overlay(
-                    Image(systemName: "sun.max.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(.white)
-                )
+            // A logo nova da Lume — o símbolo dourado do Figma.
+            Image("SimboloLume")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 38, height: 38)
                 .accessibilityHidden(true)
         }
     }
@@ -115,22 +129,22 @@ struct HojeView: View {
         VStack(alignment: .leading, spacing: 14) {
             if case .calculado(let dia) = resultado {
                 HStack {
-                    Text(Date.now.formatted(.dateTime.month(.wide).year().locale(FormatadorDeMoeda.localidade)).uppercased())
+                    Text(mesDoCartao)
                         .font(.caption2.weight(.semibold))
                         .kerning(1.2)
                         .foregroundStyle(Tema.douradoEscuro)
                     Spacer()
                     Text("Este mês")
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(Tema.tintaSuave)
+                        .foregroundStyle(Tema.tinta)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(Tema.bege, in: Capsule())
+                        .background(Tema.areia, in: Capsule())
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(FormatadorDeMoeda.texto(gastoDoMes))
-                        .font(.system(size: 38, weight: .bold))
+                        .font(.system(size: 34, weight: .bold))
                         .monospacedDigit()
                         .foregroundStyle(Tema.tinta)
                         .contentTransition(.numericText())
@@ -141,7 +155,8 @@ struct HojeView: View {
 
                 BarraDeProgresso(fracao: fracaoDoOrcamento)
 
-                HStack(alignment: .firstTextBaseline) {
+                // Duas colunas alinhadas à esquerda, a segunda a meio do cartão.
+                HStack(alignment: .firstTextBaseline, spacing: 0) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Ainda disponíveis")
                             .font(.caption)
@@ -151,8 +166,8 @@ struct HojeView: View {
                             .monospacedDigit()
                             .foregroundStyle(Tema.tinta)
                     }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 2) {
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 2) {
                         Text("Por dia · \(dia.diasRestantes) \(dia.diasRestantes == 1 ? "dia" : "dias")")
                             .font(.caption)
                             .foregroundStyle(Tema.tintaSuave)
@@ -161,6 +176,7 @@ struct HojeView: View {
                             .monospacedDigit()
                             .foregroundStyle(Tema.tinta)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 ritmoDoMes
@@ -168,7 +184,7 @@ struct HojeView: View {
                 NumeroDiarioView(resultado: resultado, aoDefinirRendimento: aoDefinirRendimento)
             }
         }
-        .padding(20)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
         .overlay(
@@ -226,16 +242,17 @@ struct HojeView: View {
     @ViewBuilder
     private var ritmoDoMes: some View {
         let diasNoMes = Calendar.current.range(of: .day, in: .month, for: .now)?.count ?? 30
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
+        // Como no frame: legendas à esquerda, gráfico à direita.
+        HStack(alignment: .bottom, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Ritmo do mês")
                     .font(.caption)
                     .foregroundStyle(Tema.tintaSuave)
-                Spacer()
                 Text(dentroDoLimite ? "Dentro do limite" : "Acima do ritmo")
-                    .font(.caption.weight(.medium))
+                    .font(.footnote.weight(.medium))
                     .foregroundStyle(dentroDoLimite ? Tema.positivo : Tema.douradoEscuro)
             }
+            .fixedSize()
             Chart {
                 // A referência: gastar o orçamento a ritmo constante.
                 ForEach([1, diasNoMes], id: \.self) { dia in
@@ -261,7 +278,7 @@ struct HojeView: View {
             .chartLegend(.hidden)
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)
-            .frame(height: 44)
+            .frame(height: 40)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Ritmo do mês: \(dentroDoLimite ? "dentro do limite" : "acima do ritmo")")
@@ -277,20 +294,19 @@ struct HojeView: View {
         }
     }
 
+    /// Como no frame: ícone dourado + texto, sem cápsulas nem contornos.
     private func acao(_ titulo: String, simbolo: String, acao: @escaping () -> Void) -> some View {
         Button(action: acao) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Image(systemName: simbolo)
-                    .font(.footnote)
+                    .font(.subheadline)
                     .foregroundStyle(Tema.douradoEscuro)
                 Text(titulo)
-                    .font(.footnote.weight(.medium))
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(Tema.tinta)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 11)
-            .background(Tema.superficie, in: Capsule())
-            .overlay(Capsule().strokeBorder(Tema.separador, lineWidth: 1))
+            .padding(.vertical, 8)
         }
     }
 
@@ -321,7 +337,7 @@ struct HojeView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     Text("Os teus limites")
-                        .font(.headline)
+                        .font(.title3.weight(.bold))
                         .foregroundStyle(Tema.tinta)
                     Spacer()
                     Button("Ver todos") { aoPlanear() }
@@ -363,11 +379,11 @@ struct HojeView: View {
     // MARK: - Últimos movimentos
 
     private var ultimosMovimentos: some View {
-        let visiveis = Array(transacoes.prefix(4))
+        let visiveis = Array(transacoes.prefix(2))
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Últimos movimentos")
-                    .font(.headline)
+                    .font(.title3.weight(.bold))
                     .foregroundStyle(Tema.tinta)
                 Spacer()
                 if !visiveis.isEmpty {
@@ -385,7 +401,7 @@ struct HojeView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(visiveis) { transacao in
-                        LinhaDeTransacao(transacao: transacao)
+                        LinhaDeTransacao(transacao: transacao, mostraConta: false)
                             .contentShape(Rectangle())
                             .onTapGesture { transacaoEmEdicao = transacao }
                         if transacao.persistentModelID != visiveis.last?.persistentModelID {

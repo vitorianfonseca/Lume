@@ -113,7 +113,7 @@ struct RegistoRapidoView: View {
                 // tem de se manter também no modo escuro.
                 .foregroundStyle(Color(hex: "38342E"))
                 .frame(width: 34, height: 34)
-                .background(Tema.douradoPolido, in: Circle())
+                .background(Tema.douradoBotao, in: Circle())
                 .opacity(textoVazio ? 0.45 : 1)
         }
         .disabled(textoVazio)

@@ -5,13 +5,16 @@ import SwiftUI
 
 struct LinhaDeTransacao: View {
     let transacao: Transacao
+    /// No Resumo a linha é exatamente como no Figma (sem cápsula da conta);
+    /// no extrato dos Movimentos a cápsula identifica o cartão.
+    var mostraConta = true
 
     var body: some View {
         HStack(spacing: 12) {
             // Avatar com as iniciais da loja, como no novo design.
             Text(iniciais)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Tema.tintaSuave)
+                .foregroundStyle(Tema.douradoEscuro)
                 .frame(width: 38, height: 38)
                 .background(Tema.bege, in: RoundedRectangle(cornerRadius: 10))
 
@@ -20,7 +23,7 @@ struct LinhaDeTransacao: View {
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Tema.tinta)
                 HStack(spacing: 6) {
-                    if let conta = transacao.conta {
+                    if mostraConta, let conta = transacao.conta {
                         // A etiqueta da conta usa a cor do cartão respetivo.
                         Text(conta.nome)
                             .font(.caption2.weight(.medium))
