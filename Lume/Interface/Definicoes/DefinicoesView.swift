@@ -30,7 +30,7 @@ struct DefinicoesView: View {
             }
             .scrollContentBackground(.hidden)
             .background(Tema.fundo)
-            .navigationTitle("Definições")
+            .navigationTitle("Perfil")
             .onAppear { garantirDefinicoes(para: dataSelecionada) }
             .onChange(of: deslocacaoDeMes) { garantirDefinicoes(para: dataSelecionada) }
             .sheet(isPresented: $mostrarNovaConta) { FormularioDeConta() }

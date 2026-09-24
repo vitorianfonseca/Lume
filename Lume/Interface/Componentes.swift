@@ -7,10 +7,17 @@ struct LinhaDeTransacao: View {
     let transacao: Transacao
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(transacao.descricao)
-                    .font(.subheadline)
+        HStack(spacing: 12) {
+            // Avatar com as iniciais da loja, como no novo design.
+            Text(iniciais)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Tema.tintaSuave)
+                .frame(width: 38, height: 38)
+                .background(Tema.bege, in: RoundedRectangle(cornerRadius: 10))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(titulo)
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(Tema.tinta)
                 HStack(spacing: 6) {
                     if let conta = transacao.conta {
@@ -37,25 +44,34 @@ struct LinhaDeTransacao: View {
                 .monospacedDigit()
                 .foregroundStyle(transacao.tipo == .receita ? Tema.positivo : Tema.tinta)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 10)
         .accessibilityElement(children: .combine)
     }
 
-    /// "Supermercado · texto", como no Figma; a loja entra quando não há categoria.
+    /// A loja manda no título ("Pingo Doce"); sem loja, fica a descrição.
+    private var titulo: String {
+        transacao.loja ?? transacao.descricao
+    }
+
+    private var iniciais: String {
+        let palavras = titulo.split(separator: " ").prefix(2)
+        let letras = palavras.compactMap(\.first)
+        return letras.isEmpty ? "•" : String(letras).uppercased()
+    }
+
+    /// "Hoje · Supermercado", como no novo design.
     private var detalhe: String? {
-        let partes = [transacao.categoria?.nome ?? transacao.loja, nomeDaOrigem]
-            .compactMap { $0 }
+        let partes = [dataCurta, transacao.categoria?.nome].compactMap { $0 }
         return partes.isEmpty ? nil : partes.joined(separator: " · ")
     }
 
-    /// Registos manuais não anunciam a origem — é o caso normal.
-    private var nomeDaOrigem: String? {
-        switch transacao.origem {
-        case .manual: nil
-        case .texto: "texto"
-        case .voz: "voz"
-        case .talao: "talão"
-        }
+    private var dataCurta: String? {
+        let calendario = Calendar.current
+        if calendario.isDateInToday(transacao.data) { return "Hoje" }
+        if calendario.isDateInYesterday(transacao.data) { return "Ontem" }
+        return transacao.data.formatted(
+            .dateTime.day().month(.abbreviated).locale(FormatadorDeMoeda.localidade)
+        )
     }
 
     private var valorFormatado: String {

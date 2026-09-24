@@ -1,26 +1,25 @@
-import SwiftUI
+import Charts
 import SwiftData
+import SwiftUI
 
-/// Ecrã Hoje com a composição do frame "App / 01 Resumo" do Figma,
-/// mas com o número diário como protagonista: etiqueta pequena, número
-/// grande com barra dourada, orçamentos por categoria, lista plana de
-/// movimentos e o campo "Gastei…" em baixo, como um dock.
+/// O ecrã Resumo do novo design: o mês em destaque num cartão (total gasto,
+/// disponível, por dia e o ritmo com gráfico), ações rápidas de registo,
+/// limites e últimos movimentos. O registo em si vive no separador Registar.
 struct HojeView: View {
     @Environment(\.modelContext) private var contexto
     @Query(sort: \Transacao.data, order: .reverse) private var transacoes: [Transacao]
     @Query(sort: \Recorrente.diaDoMes) private var recorrentes: [Recorrente]
     @Query private var definicoes: [DefinicoesDoMes]
     @Query(sort: \Categoria.ordem) private var categorias: [Categoria]
-    @Query private var contas: [Conta]
 
-    /// Muda para o separador Movimentos; injetado pela RaizView ("Ver tudo").
+    /// Injetados pela RaizView: navegação entre separadores.
     var aoVerTudo: () -> Void = {}
-    /// Muda para o separador Definições quando falta o rendimento.
     var aoDefinirRendimento: () -> Void = {}
+    var aoRegistar: (ModoDeRegisto) -> Void = { _ in }
+    var aoPlanear: () -> Void = {}
 
     @State private var viewModel = HojeViewModel()
     @State private var transacaoEmEdicao: Transacao?
-    @State private var mostrarGuardado = false
 
     private var resultado: CalculadoraDoDia.Resultado {
         viewModel.resultadoDoDia(
@@ -32,66 +31,19 @@ struct HojeView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 32) {
-                heroDoDia
-                orcamentosPorCategoria
+            VStack(alignment: .leading, spacing: 26) {
+                cabecalho
+                cartaoDoMes
+                acoesRapidas
+                limites
                 ultimosMovimentos
-                proximasContasFixas
             }
             .padding(.horizontal, Tema.margemDoEcra)
-            .padding(.top, 24)
-            .padding(.bottom, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
         }
         .background(Tema.fundo)
-        .scrollDismissesKeyboard(.interactively)
         .animation(.snappy, value: resultado)
-        .sensoryFeedback(.success, trigger: viewModel.gravacoes)
-        // O momento verde do sistema visual: confirma a gravação sem interromper.
-        .overlay(alignment: .bottom) {
-            if mostrarGuardado {
-                Label(viewModel.resumoDaGravacao, systemImage: "checkmark")
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(Tema.positivo)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(Tema.superficie, in: Capsule())
-                    .overlay(Capsule().strokeBorder(Tema.separador, lineWidth: 1))
-                    .shadow(color: .black.opacity(0.06), radius: 10, y: 3)
-                    .padding(.bottom, 8)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    // O VoiceOver recebe o anúncio; a cápsula é só visual.
-                    .accessibilityHidden(true)
-            }
-        }
-        .onChange(of: viewModel.gravacoes) {
-            AccessibilityNotification.Announcement(viewModel.resumoDaGravacao).post()
-            withAnimation(.snappy) { mostrarGuardado = true }
-            Task {
-                try? await Task.sleep(for: .seconds(2.4))
-                withAnimation(.easeOut) { mostrarGuardado = false }
-            }
-        }
-        // O composer vive em baixo, como no Figma.
-        .safeAreaInset(edge: .bottom) {
-            RegistoRapidoView(viewModel: viewModel, categorias: categorias)
-                .padding(.horizontal, Tema.margemDoEcra)
-                .padding(.vertical, 8)
-                .background(Tema.fundo)
-        }
-        .sheet(isPresented: cartaoVisivel) {
-            if let proposta = viewModel.proposta {
-                CartaoDeConfirmacaoView(
-                    proposta: proposta,
-                    categorias: categorias,
-                    aoConfirmar: { confirmada in
-                        viewModel.confirmar(confirmada, categorias: categorias, contas: contas, contexto: contexto)
-                    },
-                    aoCancelar: { viewModel.proposta = nil }
-                )
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-            }
-        }
         .sheet(item: $transacaoEmEdicao) { transacao in
             CartaoDeConfirmacaoView(
                 proposta: PropostaDeTransacao(de: transacao),
@@ -115,71 +67,236 @@ struct HojeView: View {
         }
     }
 
-    private var cartaoVisivel: Binding<Bool> {
-        Binding(
-            get: { viewModel.proposta != nil },
-            set: { if !$0 { viewModel.proposta = nil } }
-        )
-    }
+    // MARK: - Cabeçalho
 
-    // MARK: - Hero do dia
-
-    private var saudacao: String {
-        switch Calendar.current.component(.hour, from: .now) {
-        case 6..<13: "Bom dia"
-        case 13..<20: "Boa tarde"
-        default: "Boa noite"
+    private var cabecalho: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(FormatadorDeMoeda.localidade)).uppercased())
+                    .font(.caption2.weight(.semibold))
+                    .kerning(1.2)
+                    .foregroundStyle(Tema.tintaSuave)
+                Text("O teu mês")
+                    .font(.title.weight(.bold))
+                    .foregroundStyle(Tema.tinta)
+            }
+            Spacer()
+            Circle()
+                .fill(Tema.douradoPolido)
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Image(systemName: "sun.max.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.white)
+                )
+                .accessibilityHidden(true)
         }
     }
 
-    /// O número do dia num cartão de boas-vindas, com o sol da Lume
-    /// a rodar devagarinho no canto.
-    private var heroDoDia: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(saudacao)
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(Tema.tinta)
-                // Formatar para String primeiro: o Text(_, format:) ignora
-                // o locale do FormatStyle e usa o do ambiente.
-                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(FormatadorDeMoeda.localidade)))
-                    .font(.footnote)
-                    .foregroundStyle(Tema.tintaSuave)
-            }
+    // MARK: - Cartão do mês
 
-            NumeroDiarioView(resultado: resultado, aoDefinirRendimento: aoDefinirRendimento)
+    /// Todas as despesas do mês corrente, recorrentes incluídas.
+    private var gastoDoMes: Decimal {
+        let calendario = Calendar.current
+        return transacoes
+            .filter { $0.tipo == .despesa && calendario.isDate($0.data, equalTo: .now, toGranularity: .month) }
+            .reduce(Decimal.zero) { $0 + $1.valor }
+    }
+
+    private var rendimentoDoMes: Decimal {
+        let calendario = Calendar.current
+        let ano = calendario.component(.year, from: .now)
+        let mes = calendario.component(.month, from: .now)
+        return definicoes.first { $0.ano == ano && $0.mes == mes }?.rendimentoEsperado ?? .zero
+    }
+
+    @ViewBuilder
+    private var cartaoDoMes: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if case .calculado(let dia) = resultado {
+                HStack {
+                    Text(Date.now.formatted(.dateTime.month(.wide).year().locale(FormatadorDeMoeda.localidade)).uppercased())
+                        .font(.caption2.weight(.semibold))
+                        .kerning(1.2)
+                        .foregroundStyle(Tema.douradoEscuro)
+                    Spacer()
+                    Text("Este mês")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Tema.tintaSuave)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Tema.bege, in: Capsule())
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(FormatadorDeMoeda.texto(gastoDoMes))
+                        .font(.system(size: 38, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(Tema.tinta)
+                        .contentTransition(.numericText())
+                    Text("gastos de um orçamento de \(FormatadorDeMoeda.texto(rendimentoDoMes))")
+                        .font(.footnote)
+                        .foregroundStyle(Tema.tintaSuave)
+                }
+
+                BarraDeProgresso(fracao: fracaoDoOrcamento)
+
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Ainda disponíveis")
+                            .font(.caption)
+                            .foregroundStyle(Tema.tintaSuave)
+                        Text(FormatadorDeMoeda.texto(dia.disponivelDoMes))
+                            .font(.title3.weight(.semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(Tema.tinta)
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("Por dia · \(dia.diasRestantes) \(dia.diasRestantes == 1 ? "dia" : "dias")")
+                            .font(.caption)
+                            .foregroundStyle(Tema.tintaSuave)
+                        Text(FormatadorDeMoeda.texto(porDia(de: dia)))
+                            .font(.title3.weight(.semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(Tema.tinta)
+                    }
+                }
+
+                ritmoDoMes
+            } else {
+                NumeroDiarioView(resultado: resultado, aoDefinirRendimento: aoDefinirRendimento)
+            }
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            ZStack(alignment: .topTrailing) {
-                RoundedRectangle(cornerRadius: Tema.Raio.cartao)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(claro: 0xFCFBF8, escuro: 0x1B1B1F),
-                                Color(claro: 0xF3F0E9, escuro: 0x141417),
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                SolDeLume()
-                    .offset(x: 26, y: -26)
-                    .opacity(0.55)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: Tema.Raio.cartao))
-        }
+        .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
         .overlay(
             RoundedRectangle(cornerRadius: Tema.Raio.cartao)
                 .strokeBorder(Tema.separador, lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.05), radius: 14, y: 6)
+        .shadow(color: .black.opacity(0.06), radius: 14, y: 6)
     }
 
-    // MARK: - Orçamentos por categoria
+    private var fracaoDoOrcamento: Double {
+        guard rendimentoDoMes > .zero else { return 0 }
+        return (gastoDoMes as NSDecimalNumber).doubleValue
+            / (rendimentoDoMes as NSDecimalNumber).doubleValue
+    }
 
-    private struct LinhaDeOrcamento: Identifiable {
+    /// A fatia diária inteira (antes dos gastos de hoje), como no design.
+    private func porDia(de dia: CalculadoraDoDia.Dia) -> Decimal {
+        guard dia.diasRestantes > 0 else { return dia.disponivelDoMes }
+        return (dia.disponivelDoMes / Decimal(dia.diasRestantes)).arredondadoACentimos()
+    }
+
+    // MARK: - Ritmo do mês
+
+    private struct PontoDoRitmo: Identifiable {
+        let dia: Int
+        let acumulado: Double
+        var id: Int { dia }
+    }
+
+    private var pontosDoRitmo: [PontoDoRitmo] {
+        let calendario = Calendar.current
+        let diaAtual = calendario.component(.day, from: .now)
+        let despesas = transacoes.filter {
+            $0.tipo == .despesa && calendario.isDate($0.data, equalTo: .now, toGranularity: .month)
+        }
+        var acumulado = 0.0
+        return (1...max(diaAtual, 1)).map { dia in
+            let doDia = despesas
+                .filter { calendario.component(.day, from: $0.data) == dia }
+                .reduce(Decimal.zero) { $0 + $1.valor }
+            acumulado += (doDia as NSDecimalNumber).doubleValue
+            return PontoDoRitmo(dia: dia, acumulado: acumulado)
+        }
+    }
+
+    private var dentroDoLimite: Bool {
+        let calendario = Calendar.current
+        let diaAtual = calendario.component(.day, from: .now)
+        let diasNoMes = calendario.range(of: .day, in: .month, for: .now)?.count ?? 30
+        let ritmoIdeal = (rendimentoDoMes as NSDecimalNumber).doubleValue
+            * Double(diaAtual) / Double(diasNoMes)
+        return (gastoDoMes as NSDecimalNumber).doubleValue <= ritmoIdeal
+    }
+
+    @ViewBuilder
+    private var ritmoDoMes: some View {
+        let diasNoMes = Calendar.current.range(of: .day, in: .month, for: .now)?.count ?? 30
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Ritmo do mês")
+                    .font(.caption)
+                    .foregroundStyle(Tema.tintaSuave)
+                Spacer()
+                Text(dentroDoLimite ? "Dentro do limite" : "Acima do ritmo")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(dentroDoLimite ? Tema.positivo : Tema.douradoEscuro)
+            }
+            Chart {
+                // A referência: gastar o orçamento a ritmo constante.
+                ForEach([1, diasNoMes], id: \.self) { dia in
+                    LineMark(
+                        x: .value("Dia", dia),
+                        y: .value("Ideal", dia == 1 ? 0 : (rendimentoDoMes as NSDecimalNumber).doubleValue),
+                        series: .value("Série", "ideal")
+                    )
+                    .foregroundStyle(Tema.tintaSuave.opacity(0.35))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 4]))
+                }
+                ForEach(pontosDoRitmo) { ponto in
+                    LineMark(
+                        x: .value("Dia", ponto.dia),
+                        y: .value("Gasto", ponto.acumulado),
+                        series: .value("Série", "gasto")
+                    )
+                    .foregroundStyle(Tema.douradoMetalico)
+                    .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
+                    .interpolationMethod(.monotone)
+                }
+            }
+            .chartLegend(.hidden)
+            .chartXAxis(.hidden)
+            .chartYAxis(.hidden)
+            .frame(height: 44)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Ritmo do mês: \(dentroDoLimite ? "dentro do limite" : "acima do ritmo")")
+    }
+
+    // MARK: - Ações rápidas
+
+    private var acoesRapidas: some View {
+        HStack(spacing: 10) {
+            acao("Escrever", simbolo: "textformat") { aoRegistar(.texto) }
+            acao("Falar", simbolo: "mic") { aoRegistar(.voz) }
+            acao("Talão", simbolo: "camera") { aoRegistar(.talao) }
+        }
+    }
+
+    private func acao(_ titulo: String, simbolo: String, acao: @escaping () -> Void) -> some View {
+        Button(action: acao) {
+            HStack(spacing: 6) {
+                Image(systemName: simbolo)
+                    .font(.footnote)
+                    .foregroundStyle(Tema.douradoEscuro)
+                Text(titulo)
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(Tema.tinta)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 11)
+            .background(Tema.superficie, in: Capsule())
+            .overlay(Capsule().strokeBorder(Tema.separador, lineWidth: 1))
+        }
+    }
+
+    // MARK: - Limites
+
+    private struct LinhaDeLimite: Identifiable {
         let categoria: Categoria
         let gasto: Decimal
         let orcamento: Decimal
@@ -187,22 +304,31 @@ struct HojeView: View {
         var id: PersistentIdentifier { categoria.persistentModelID }
     }
 
-    /// As três categorias com orçamento mais preenchido este mês.
-    private var linhasDeOrcamento: [LinhaDeOrcamento] {
-        let linhas = categorias.compactMap { categoria -> LinhaDeOrcamento? in
+    private var linhasDeLimite: [LinhaDeLimite] {
+        let linhas = categorias.compactMap { categoria -> LinhaDeLimite? in
             guard let orcamento = categoria.orcamentoMensal, orcamento > .zero else { return nil }
             let gasto = gastoDoMes(em: categoria)
             let fracao = (gasto as NSDecimalNumber).doubleValue / (orcamento as NSDecimalNumber).doubleValue
-            return LinhaDeOrcamento(categoria: categoria, gasto: gasto, orcamento: orcamento, fracao: fracao)
+            return LinhaDeLimite(categoria: categoria, gasto: gasto, orcamento: orcamento, fracao: fracao)
         }
-        return Array(linhas.sorted { $0.fracao > $1.fracao }.prefix(3))
+        return Array(linhas.sorted { $0.fracao > $1.fracao }.prefix(2))
     }
 
     @ViewBuilder
-    private var orcamentosPorCategoria: some View {
-        let linhas = linhasDeOrcamento
+    private var limites: some View {
+        let linhas = linhasDeLimite
         if !linhas.isEmpty {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Text("Os teus limites")
+                        .font(.headline)
+                        .foregroundStyle(Tema.tinta)
+                    Spacer()
+                    Button("Ver todos") { aoPlanear() }
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(Tema.douradoEscuro)
+                }
+
                 ForEach(linhas) { linha in
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .firstTextBaseline) {
@@ -215,8 +341,7 @@ struct HojeView: View {
                                 .monospacedDigit()
                                 .foregroundStyle(Tema.tintaSuave)
                         }
-                        // Dourado só quando o orçamento passa os 90%, como no Figma.
-                        BarraDeProgresso(fracao: linha.fracao, dourada: linha.fracao >= 0.9, altura: 4)
+                        BarraDeProgresso(fracao: linha.fracao, dourada: true, altura: 4)
                     }
                     .accessibilityElement(children: .combine)
                 }
@@ -238,66 +363,34 @@ struct HojeView: View {
     // MARK: - Últimos movimentos
 
     private var ultimosMovimentos: some View {
-        let visiveis = Array(transacoes.prefix(5))
-        return VStack(alignment: .leading, spacing: 4) {
+        let visiveis = Array(transacoes.prefix(4))
+        return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Últimos movimentos")
-                    .font(.footnote)
-                    .foregroundStyle(Tema.tintaSuave)
+                    .font(.headline)
+                    .foregroundStyle(Tema.tinta)
                 Spacer()
                 if !visiveis.isEmpty {
-                    Button("Ver tudo") { aoVerTudo() }
-                        .font(.footnote)
-                        .foregroundStyle(Tema.tintaSuave)
+                    Button("Ver todos") { aoVerTudo() }
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(Tema.douradoEscuro)
                 }
             }
 
             if visiveis.isEmpty {
-                Text("Ainda sem movimentos. Escreve o primeiro ali em baixo.")
+                Text("Ainda sem movimentos. Regista o primeiro no separador Registar.")
                     .font(.footnote)
                     .foregroundStyle(Tema.tintaSuave)
-                    .padding(.top, 8)
+                    .padding(.top, 4)
             } else {
-                // Lista plana como no Figma: linhas sobre o fundo,
-                // com uma linha fina depois de cada uma.
                 VStack(spacing: 0) {
                     ForEach(visiveis) { transacao in
                         LinhaDeTransacao(transacao: transacao)
                             .contentShape(Rectangle())
                             .onTapGesture { transacaoEmEdicao = transacao }
-                        Divider().overlay(Tema.separador)
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - Próximas contas fixas
-
-    /// Recorrentes ativas que vencem nos próximos 7 dias, ordenadas pela data.
-    private var proximasNosProximos7Dias: [(recorrente: Recorrente, data: Date)] {
-        let calendario = Calendar.current
-        let limite = calendario.date(byAdding: .day, value: 7, to: calendario.startOfDay(for: .now)) ?? .now
-        return recorrentes
-            .filter(\.ativa)
-            .map { ($0, AgendaDeRecorrentes.proximaOcorrencia(diaDoMes: $0.diaDoMes, aPartirDe: .now)) }
-            .filter { $0.1 < limite }
-            .sorted { $0.1 < $1.1 }
-    }
-
-    @ViewBuilder
-    private var proximasContasFixas: some View {
-        let proximas = proximasNosProximos7Dias
-        if !proximas.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Próximas contas fixas")
-                    .font(.footnote)
-                    .foregroundStyle(Tema.tintaSuave)
-
-                VStack(spacing: 0) {
-                    ForEach(proximas, id: \.recorrente.persistentModelID) { proxima in
-                        LinhaDeRecorrente(recorrente: proxima.recorrente, data: proxima.data)
-                        Divider().overlay(Tema.separador)
+                        if transacao.persistentModelID != visiveis.last?.persistentModelID {
+                            Divider().overlay(Tema.separador)
+                        }
                     }
                 }
             }

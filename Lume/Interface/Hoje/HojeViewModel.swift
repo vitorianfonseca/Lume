@@ -79,7 +79,8 @@ final class HojeViewModel {
         _ proposta: PropostaDeTransacao,
         categorias: [Categoria],
         contas: [Conta],
-        contexto: ModelContext
+        contexto: ModelContext,
+        conta contaEscolhida: Conta? = nil
     ) {
         let transacao = Transacao(
             valor: proposta.valor,
@@ -88,7 +89,7 @@ final class HojeViewModel {
             loja: proposta.loja,
             data: proposta.data,
             categoria: categorias.first { $0.nome == proposta.nomeDaCategoria },
-            conta: contas.first(where: \.principal) ?? contas.first,
+            conta: contaEscolhida ?? contas.first(where: \.principal) ?? contas.first,
             origem: origemDoRegisto
         )
         contexto.insert(transacao)

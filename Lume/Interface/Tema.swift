@@ -4,10 +4,11 @@ import UIKit
 /// Paleta e geometria da Lume, extraídas do sistema visual (site/identidade):
 /// marfim, tinta, cinzentos quentes, linhas finas e dourado só em acentos.
 nonisolated enum Tema {
-    // O ecrã da app é branco puro (como no mockup da identidade);
-    // o marfim #F6F6F3 é o fundo do site, não da app.
-    static let fundo = Color(claro: 0xFFFFFF, escuro: 0x111214)
+    // Novo design (24/09): fundo creme quente com cartões brancos.
+    static let fundo = Color(claro: 0xF5F1E8, escuro: 0x111214)
     static let superficie = Color(claro: 0xFFFFFF, escuro: 0x1A1A1E)
+    /// Bege dos avatares e chips neutros do novo design.
+    static let bege = Color(claro: 0xEDE7D9, escuro: 0x2B2B27)
     static let tinta = Color(claro: 0x141416, escuro: 0xF2F0EB)
     static let tintaSuave = Color(claro: 0x716D65, escuro: 0xA9A49A)
     /// Preto fosco quente para ícones e setas — nunca preto puro.

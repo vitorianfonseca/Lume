@@ -126,6 +126,38 @@ struct ContasView: View {
     }
 }
 
+/// Carrossel reutilizável dos cartões — no novo design vive no Planear.
+struct CarrosselDeContas: View {
+    @Query(sort: \Conta.nome) private var contas: [Conta]
+
+    private var ordenadas: [Conta] {
+        contas.sorted { ($0.principal ? 0 : 1, $0.nome) < ($1.principal ? 0 : 1, $1.nome) }
+    }
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 14) {
+                ForEach(ordenadas) { conta in
+                    CartaoDeConta(conta: conta)
+                        .containerRelativeFrame(.horizontal)
+                        .scrollTransition(axis: .horizontal) { conteudo, fase in
+                            conteudo
+                                .rotation3DEffect(.degrees(fase.value * -10), axis: (x: 0, y: 1, z: 0))
+                                .scaleEffect(fase.isIdentity ? 1 : 0.94)
+                                .opacity(fase.isIdentity ? 1 : 0.75)
+                        }
+                        .id(conta.persistentModelID)
+                }
+            }
+            .padding(.vertical, 14)
+            .scrollTargetLayout()
+        }
+        .scrollTargetBehavior(.viewAligned)
+        .scrollIndicators(.hidden)
+        .contentMargins(.horizontal, Tema.margemDoEcra, for: .scrollContent)
+    }
+}
+
 /// Um cartão bancário "físico": gradiente profundo com brilho de plástico,
 /// chip EMV em dourado polido, contactless e texto gravado em relevo.
 struct CartaoDeConta: View {

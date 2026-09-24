@@ -1,15 +1,16 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 import UIKit
 
-/// Navegação principal: quatro separadores, sem cerimónia.
-/// Ícones nunca em preto puro: dourado na seleção, cinzento quente no resto.
+/// Navegação do novo design: Resumo · Movimentos · Registar (+ dourado)
+/// · Planear · Perfil. Ícones nunca em preto puro.
 struct RaizView: View {
     enum Separador: Hashable {
-        case hoje, movimentos, contas, orcamento, definicoes
+        case resumo, movimentos, registar, planear, perfil
     }
 
-    @State private var separador = Separador.hoje
+    @State private var separador = Separador.resumo
+    @State private var modoDeRegisto = ModoDeRegisto.texto
     @Environment(\.colorScheme) private var esquema
     @AppStorage("viuBoasVindas") private var viuBoasVindas = false
     @Query(sort: \Recorrente.diaDoMes) private var recorrentes: [Recorrente]
@@ -48,33 +49,38 @@ struct RaizView: View {
 
     var body: some View {
         TabView(selection: $separador) {
-            Tab(value: .hoje) {
+            Tab(value: .resumo) {
                 HojeView(
                     aoVerTudo: { separador = .movimentos },
-                    aoDefinirRendimento: { separador = .definicoes }
+                    aoDefinirRendimento: { separador = .perfil },
+                    aoRegistar: { modo in
+                        modoDeRegisto = modo
+                        separador = .registar
+                    },
+                    aoPlanear: { separador = .planear }
                 )
             } label: {
-                Label { Text("Hoje") } icon: { simbolo("sun.max", ativo: separador == .hoje) }
+                Label { Text("Resumo") } icon: { simbolo("house", ativo: separador == .resumo) }
             }
             Tab(value: .movimentos) {
                 MovimentosView()
             } label: {
                 Label { Text("Movimentos") } icon: { simbolo("list.bullet", ativo: separador == .movimentos) }
             }
-            Tab(value: .contas) {
-                ContasView()
+            Tab(value: .registar) {
+                RegistarView(modo: $modoDeRegisto)
             } label: {
-                Label { Text("Contas") } icon: { simbolo("creditcard", ativo: separador == .contas) }
+                Label { Text("Registar") } icon: { simboloDeRegistar }
             }
-            Tab(value: .orcamento) {
+            Tab(value: .planear) {
                 OrcamentoView()
             } label: {
-                Label { Text("Orçamento") } icon: { simbolo("chart.bar", ativo: separador == .orcamento) }
+                Label { Text("Planear") } icon: { simbolo("square.grid.2x2", ativo: separador == .planear) }
             }
-            Tab(value: .definicoes) {
+            Tab(value: .perfil) {
                 DefinicoesView()
             } label: {
-                Label { Text("Definições") } icon: { simbolo("gearshape", ativo: separador == .definicoes) }
+                Label { Text("Perfil") } icon: { simbolo("person", ativo: separador == .perfil) }
             }
         }
         .tint(Tema.dourado)
@@ -103,6 +109,15 @@ struct RaizView: View {
         let ouro = UIColor(red: 0xC9 / 255, green: 0xA4 / 255, blue: 0x5A / 255, alpha: 1)
         let imagem = (UIImage(systemName: nome, withConfiguration: configuracao) ?? UIImage())
             .withTintColor(ativo ? ouro : cinza, renderingMode: .alwaysOriginal)
+        return Image(uiImage: imagem)
+    }
+
+    /// O "+" central do novo design: quadrado dourado, sempre em destaque.
+    private var simboloDeRegistar: Image {
+        let configuracao = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
+        let ouro = UIColor(red: 0xC9 / 255, green: 0xA4 / 255, blue: 0x5A / 255, alpha: 1)
+        let imagem = (UIImage(systemName: "plus.square.fill", withConfiguration: configuracao) ?? UIImage())
+            .withTintColor(ouro, renderingMode: .alwaysOriginal)
         return Image(uiImage: imagem)
     }
 }

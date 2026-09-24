@@ -17,6 +17,15 @@ struct OrcamentoView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    Text("As tuas contas")
+                        .font(.headline)
+                        .foregroundStyle(Tema.tinta)
+                        .padding(.horizontal, Tema.margemDoEcra)
+                    CarrosselDeContas()
+                }
+                .padding(.top, 8)
+
                 VStack(alignment: .leading, spacing: 32) {
                     if categorias.isEmpty {
                         ContentUnavailableView(
@@ -45,7 +54,7 @@ struct OrcamentoView: View {
                 .padding(.bottom, 24)
             }
             .background(Tema.fundo)
-            .navigationTitle("Orçamento")
+            .navigationTitle("Planear")
             .sheet(isPresented: $mostrarNovaMeta) { FormularioDeMeta(meta: nil) }
             .sheet(item: $metaEmEdicao) { meta in FormularioDeMeta(meta: meta) }
         }
