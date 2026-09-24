@@ -28,7 +28,9 @@ struct RegistoRapidoView: View {
                     Button(action: interpretar) {
                         Image(systemName: "arrow.up")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Tema.tintaFosca)
+                            // Preto fosco fixo: sobre o dourado, o contraste
+                            // tem de se manter também no modo escuro.
+                            .foregroundStyle(Color(hex: "38342E"))
                             .frame(width: 34, height: 34)
                             .background(Tema.douradoPolido, in: Circle())
                             .opacity(textoVazio ? 0.45 : 1)

@@ -98,30 +98,37 @@ struct CartaoDeConfirmacaoView: View {
                 .font(.footnote)
                 .foregroundStyle(Tema.tintaSuave)
 
-            HStack(spacing: 8) {
-                Menu {
-                    Picker("Categoria", selection: $proposta.nomeDaCategoria) {
-                        Text("Sem categoria").tag(String?.none)
-                        ForEach(categorias) { categoria in
-                            Label(categoria.nome, systemImage: categoria.simbolo)
-                                .tag(String?.some(categoria.nome))
+            // Com Dynamic Type grande os chips não cabem lado a lado;
+            // deslizam na horizontal em vez de rebentar o cartão.
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    Menu {
+                        Picker("Categoria", selection: $proposta.nomeDaCategoria) {
+                            Text("Sem categoria").tag(String?.none)
+                            ForEach(categorias) { categoria in
+                                Label(categoria.nome, systemImage: categoria.simbolo)
+                                    .tag(String?.some(categoria.nome))
+                            }
                         }
+                    } label: {
+                        chip(proposta.nomeDaCategoria ?? "Sem categoria", contornoDourado: true)
                     }
-                } label: {
-                    chip(proposta.nomeDaCategoria ?? "Sem categoria", contornoDourado: true)
-                }
+                    .accessibilityLabel("Categoria")
 
-                Menu {
-                    Picker("Tipo", selection: $proposta.tipo) {
-                        Text("Despesa").tag(TipoTransacao.despesa)
-                        Text("Receita").tag(TipoTransacao.receita)
+                    Menu {
+                        Picker("Tipo", selection: $proposta.tipo) {
+                            Text("Despesa").tag(TipoTransacao.despesa)
+                            Text("Receita").tag(TipoTransacao.receita)
+                        }
+                    } label: {
+                        chip(proposta.tipo == .despesa ? "Despesa" : "Receita")
                     }
-                } label: {
-                    chip(proposta.tipo == .despesa ? "Despesa" : "Receita")
-                }
+                    .accessibilityLabel("Tipo")
 
-                DatePicker("", selection: $proposta.data, displayedComponents: .date)
-                    .labelsHidden()
+                    DatePicker("", selection: $proposta.data, displayedComponents: .date)
+                        .labelsHidden()
+                        .accessibilityLabel("Data")
+                }
             }
         }
         .padding(20)

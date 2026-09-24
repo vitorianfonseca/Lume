@@ -59,9 +59,12 @@ struct HojeView: View {
                     .shadow(color: .black.opacity(0.06), radius: 10, y: 3)
                     .padding(.bottom, 8)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
+                    // O VoiceOver recebe o anúncio; a cápsula é só visual.
+                    .accessibilityHidden(true)
             }
         }
         .onChange(of: viewModel.gravacoes) {
+            AccessibilityNotification.Announcement(viewModel.resumoDaGravacao).post()
             withAnimation(.snappy) { mostrarGuardado = true }
             Task {
                 try? await Task.sleep(for: .seconds(2.4))
