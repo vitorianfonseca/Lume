@@ -103,31 +103,37 @@ struct MovimentosView: View {
                 .listRowInsets(EdgeInsets(top: 0, leading: Tema.margemDoEcra, bottom: 0, trailing: Tema.margemDoEcra))
             }
 
-            ForEach(porDia, id: \.dia) { grupo in
+            ForEach(Array(porDia.enumerated()), id: \.element.dia) { indice, grupo in
                 Section {
                     ForEach(grupo.transacoes) { transacao in
                         LinhaDeTransacao(transacao: transacao, estilo: .extrato)
                             .contentShape(Rectangle())
                             .onTapGesture { transacaoAberta = transacao }
                             .listRowBackground(Color.clear)
-                            .listRowSeparatorTint(Tema.separador)
+                            .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets(top: 0, leading: Tema.margemDoEcra, bottom: 0, trailing: Tema.margemDoEcra))
                     }
                     .onDelete { apagar($0, de: grupo.transacoes) }
                 } header: {
-                    // Dia à esquerda, saldo do dia à direita — como no frame.
-                    HStack {
-                        Text(titulo(para: grupo.dia))
-                            .font(Tema.fonte(13))
-                            .foregroundStyle(Tema.tintaSuave)
-                            .textCase(nil)
-                        Spacer()
-                        Text(saldoDoDia(grupo.transacoes))
-                            .font(Tema.fonte(13))
-                            .monospacedDigit()
-                            .foregroundStyle(Tema.tintaSuave)
+                    // Divisor entre dias + "Hoje, 24 setembro" com o saldo
+                    // do dia em dourado — como no frame.
+                    VStack(alignment: .leading, spacing: 12) {
+                        if indice > 0 {
+                            Divider().overlay(Tema.separador)
+                        }
+                        HStack {
+                            Text(titulo(para: grupo.dia))
+                                .font(Tema.fonte(17, .semibold))
+                                .foregroundStyle(Tema.tinta)
+                                .textCase(nil)
+                            Spacer()
+                            Text(saldoDoDia(grupo.transacoes))
+                                .font(Tema.fonte(12, .medium))
+                                .monospacedDigit()
+                                .foregroundStyle(Tema.douradoEscuro)
+                        }
                     }
-                    .listRowInsets(EdgeInsets(top: 12, leading: Tema.margemDoEcra, bottom: 4, trailing: Tema.margemDoEcra))
+                    .listRowInsets(EdgeInsets(top: 6, leading: Tema.margemDoEcra, bottom: 0, trailing: Tema.margemDoEcra))
                 }
             }
 
@@ -196,13 +202,13 @@ struct MovimentosView: View {
                     withAnimation(.snappy) { filtro = opcao }
                 } label: {
                     Text(opcao.rawValue)
-                        .font(Tema.fonte(13, filtro == opcao ? .semibold : .regular))
+                        .font(Tema.fonte(12, filtro == opcao ? .semibold : .regular))
                         .foregroundStyle(filtro == opcao ? Tema.douradoEscuro : Tema.tintaSuave)
-                        .padding(.horizontal, 16)
-                        .frame(height: 38)
+                        .padding(.horizontal, 15)
+                        .frame(height: 32)
                         .background(
                             filtro == opcao ? AnyShapeStyle(Tema.areia) : AnyShapeStyle(.clear),
-                            in: RoundedRectangle(cornerRadius: Tema.Raio.chip)
+                            in: RoundedRectangle(cornerRadius: 16)
                         )
                 }
                 .accessibilityAddTraits(filtro == opcao ? [.isSelected] : [])
@@ -230,40 +236,40 @@ struct MovimentosView: View {
 
     /// O cartão areia com o resumo do mês: movimentos, despesas e receitas.
     private var resumoDoMes: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(nomeDoMes)
-                    .font(Tema.fonte(15, .semibold))
+                    .font(Tema.fonte(13, .medium))
                     .foregroundStyle(Tema.tinta)
                 Spacer()
                 Text("\(doMes.count) movimentos")
-                    .font(Tema.fonte(12))
+                    .font(Tema.fonte(11))
                     .foregroundStyle(Tema.tintaSuave)
             }
             HStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("Despesas")
-                        .font(Tema.fonte(12))
+                        .font(Tema.fonte(11))
                         .foregroundStyle(Tema.tintaSuave)
                     Text(FormatadorDeMoeda.texto(despesasDoMes))
-                        .font(Tema.fonte(17, .semibold))
+                        .font(Tema.fonte(20, .medium))
                         .monospacedDigit()
                         .foregroundStyle(Tema.tinta)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("Receitas")
-                        .font(Tema.fonte(12))
+                        .font(Tema.fonte(11))
                         .foregroundStyle(Tema.tintaSuave)
                     Text(FormatadorDeMoeda.texto(receitasDoMes))
-                        .font(Tema.fonte(17, .semibold))
+                        .font(Tema.fonte(20, .medium))
                         .monospacedDigit()
                         .foregroundStyle(Tema.tinta)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(16)
+        .padding(18)
         .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
         .accessibilityElement(children: .combine)
     }
@@ -280,12 +286,12 @@ struct MovimentosView: View {
     /// Campo de pesquisa no estilo dos cartões do frame: cápsula branca
     /// com contorno fino.
     private var campoDePesquisa: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .font(Tema.fonte(13))
+                .font(Tema.fonte(14))
                 .foregroundStyle(Tema.tintaSuave)
             TextField("Pesquisar comerciante ou categoria", text: $pesquisa)
-                .font(Tema.fonte(15))
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tinta)
                 .autocorrectionDisabled()
             if !pesquisa.isEmpty {
@@ -299,21 +305,20 @@ struct MovimentosView: View {
                 .accessibilityLabel("Limpar pesquisa")
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
-        .overlay(
-            RoundedRectangle(cornerRadius: Tema.Raio.campo)
-                .strokeBorder(Tema.separador, lineWidth: 1)
-        )
+        .padding(.leading, 14)
+        .padding(.trailing, 10)
+        .frame(height: 48)
+        .background(Tema.superficie, in: RoundedRectangle(cornerRadius: 16))
         .buttonStyle(.borderless)
     }
 
     private func titulo(para dia: Date) -> String {
         let calendario = Calendar.current
-        if calendario.isDateInToday(dia) { return "Hoje" }
-        if calendario.isDateInYesterday(dia) { return "Ontem" }
-        return dia.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(FormatadorDeMoeda.localidade))
+        let diaEMes = "\(dia.formatted(.dateTime.day().locale(FormatadorDeMoeda.localidade))) \(dia.formatted(.dateTime.month(.wide).locale(FormatadorDeMoeda.localidade)))"
+        if calendario.isDateInToday(dia) { return "Hoje, \(diaEMes)" }
+        if calendario.isDateInYesterday(dia) { return "Ontem, \(diaEMes)" }
+        let semana = dia.formatted(.dateTime.weekday(.wide).locale(FormatadorDeMoeda.localidade))
+        return "\(semana.prefix(1).uppercased() + semana.dropFirst()), \(diaEMes)"
     }
 
     private func apagar(_ indices: IndexSet, de grupo: [Transacao]) {
