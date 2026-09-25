@@ -18,6 +18,9 @@ final class HojeViewModel {
     /// na transação ao confirmar.
     private(set) var origemDoRegisto = OrigemTransacao.texto
 
+    /// A fotografia do talão em curso, guardada na transação ao confirmar.
+    private(set) var fotoDoTalao: Data?
+
     private let interpretadorFixo: (any InterpretadorDeDespesas)?
 
     /// Resolvido a cada pedido, para uma chave Claude acabada de guardar
@@ -58,6 +61,7 @@ final class HojeViewModel {
         aInterpretar = true
         mensagemDeErro = nil
         origemDoRegisto = .talao
+        fotoDoTalao = dados
         defer { aInterpretar = false }
 
         do {
@@ -92,6 +96,9 @@ final class HojeViewModel {
             conta: contaEscolhida ?? contas.first(where: \.principal) ?? contas.first,
             origem: origemDoRegisto
         )
+        if origemDoRegisto == .talao {
+            transacao.fotoDoTalao = fotoDoTalao
+        }
         contexto.insert(transacao)
         try? contexto.save()
 
@@ -100,6 +107,7 @@ final class HojeViewModel {
         self.proposta = nil
         textoDeRegisto = ""
         origemDoRegisto = .texto
+        fotoDoTalao = nil
     }
 
     /// O momento "Guardado · Orçamento a 61%" do sistema visual.

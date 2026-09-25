@@ -8,8 +8,8 @@ nonisolated enum Tema {
     // fundo e cartões brancos puros, tinta "espresso" quente.
     static let fundo = Color(claro: 0xFFFFFF, escuro: 0x111214)
     static let superficie = Color(claro: 0xFFFFFF, escuro: 0x1A1A1E)
-    /// Bege dos avatares e chips neutros.
-    static let bege = Color(claro: 0xF0EAE0, escuro: 0x2B2B27)
+    /// Bege dos avatares e chips neutros — "warm" no quadro de identidade.
+    static let bege = Color(claro: 0xF0EBE1, escuro: 0x2B2B27)
     /// Areia dos painéis grandes (voz e talão).
     static let areia = Color(claro: 0xF7EEDB, escuro: 0x26241E)
     /// Dourado claro dos botões de ação (texto escuro por cima).
@@ -19,9 +19,9 @@ nonisolated enum Tema {
     /// Preto fosco quente para ícones e setas — nunca preto puro.
     static let tintaFosca = Color(claro: 0x38342E, escuro: 0xE8E4DC)
     static let dourado = Color(claro: 0xC9A45A, escuro: 0xC9A45A)
-    static let douradoEscuro = Color(claro: 0x8C6A2C, escuro: 0xD4AD5F)
-    /// Verde discreto para receitas e confirmações ("Guardado").
-    static let positivo = Color(claro: 0x347047, escuro: 0x8AC69C)
+    static let douradoEscuro = Color(claro: 0x8E641F, escuro: 0xD4AD5F)
+    /// Verde discreto para receitas e confirmações — "positive" na identidade.
+    static let positivo = Color(claro: 0x456B56, escuro: 0x8AC69C)
     /// Linhas finas: tinta a 15% — o sistema visual pede 12%, mas sobre
     /// o fundo branco puro é preciso um ponto mais para se ler.
     static var separador: Color { tinta.opacity(0.15) }

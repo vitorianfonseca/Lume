@@ -86,25 +86,8 @@ struct HojeView: View {
     }
 
     private var cabecalho: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
-                // "QUINTA-FEIRA, 24 SETEMBRO", exatamente como no Figma (sem "de").
-                Text(dataDoCabecalho)
-                    .font(.caption2.weight(.semibold))
-                    .kerning(1.2)
-                    .foregroundStyle(Tema.tintaSuave)
-                Text("O teu mês")
-                    .font(.title.weight(.bold))
-                    .foregroundStyle(Tema.tinta)
-            }
-            Spacer()
-            // A logo nova da Lume — o símbolo dourado do Figma.
-            Image("SimboloLume")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 38, height: 38)
-                .accessibilityHidden(true)
-        }
+        // "QUINTA-FEIRA, 24 SETEMBRO", exatamente como no Figma (sem "de").
+        CabecalhoDeEcra(legenda: dataDoCabecalho, titulo: "O teu mês")
     }
 
     // MARK: - Cartão do mês
@@ -335,15 +318,7 @@ struct HojeView: View {
         let linhas = linhasDeLimite
         if !linhas.isEmpty {
             VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Text("Os teus limites")
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(Tema.tinta)
-                    Spacer()
-                    Button("Ver todos") { aoPlanear() }
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(Tema.douradoEscuro)
-                }
+                TituloDeSeccao(titulo: "Os teus limites", acao: "Ver todos") { aoPlanear() }
 
                 ForEach(linhas) { linha in
                     VStack(alignment: .leading, spacing: 8) {
@@ -381,16 +356,10 @@ struct HojeView: View {
     private var ultimosMovimentos: some View {
         let visiveis = Array(transacoes.prefix(2))
         return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Últimos movimentos")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(Tema.tinta)
-                Spacer()
-                if !visiveis.isEmpty {
-                    Button("Ver todos") { aoVerTudo() }
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(Tema.douradoEscuro)
-                }
+            if visiveis.isEmpty {
+                TituloDeSeccao(titulo: "Últimos movimentos")
+            } else {
+                TituloDeSeccao(titulo: "Últimos movimentos", acao: "Ver todos") { aoVerTudo() }
             }
 
             if visiveis.isEmpty {
@@ -401,7 +370,7 @@ struct HojeView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(visiveis) { transacao in
-                        LinhaDeTransacao(transacao: transacao, mostraConta: false)
+                        LinhaDeTransacao(transacao: transacao)
                             .contentShape(Rectangle())
                             .onTapGesture { transacaoEmEdicao = transacao }
                         if transacao.persistentModelID != visiveis.last?.persistentModelID {

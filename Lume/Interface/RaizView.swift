@@ -52,7 +52,7 @@ struct RaizView: View {
             Tab(value: .resumo) {
                 HojeView(
                     aoVerTudo: { separador = .movimentos },
-                    aoDefinirRendimento: { separador = .perfil },
+                    aoDefinirRendimento: { separador = .planear },
                     aoRegistar: { modo in
                         modoDeRegisto = modo
                         separador = .registar

@@ -42,6 +42,7 @@ struct RegistarView: View {
     @Environment(\.modelContext) private var contexto
     @Query(sort: \Categoria.ordem) private var categorias: [Categoria]
     @Query(sort: \Conta.nome) private var contas: [Conta]
+    @Query private var transacoes: [Transacao]
 
     @Binding var modo: ModoDeRegisto
 
@@ -117,7 +118,12 @@ struct RegistarView: View {
             }
         }
         .onChange(of: modo) {
+            // Trocar de modo recomeça o registo — o "Percebido" de um modo
+            // não pode ficar pendurado debaixo dos painéis dos outros.
             if gravador.aGravar { pararVoz() }
+            proposta = nil
+            viewModel.proposta = nil
+            viewModel.mensagemDeErro = nil
         }
         .onChange(of: gravador.transcricao) {
             guard gravador.aGravar else { return }
@@ -134,20 +140,16 @@ struct RegistarView: View {
 
     // MARK: - Cabeçalho e seletor
 
+    /// Depois de uma gravação de voz, o ecrã passa a "Rever despesa" (ecrã 09).
+    private var aReverVoz: Bool {
+        proposta != nil && viewModel.origemDoRegisto == .voz && modo == .voz
+    }
+
     private var cabecalho: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(modo.legenda)
-                    .font(.caption2.weight(.semibold))
-                    .kerning(1.2)
-                    .foregroundStyle(Tema.tintaSuave)
-                Text(modo.titulo)
-                    .font(.title.weight(.bold))
-                    .foregroundStyle(Tema.tinta)
-            }
-            Spacer()
-            moedaDaMarca(36)
-        }
+        CabecalhoDeEcra(
+            legenda: aReverVoz ? "REGISTADO POR VOZ" : modo.legenda,
+            titulo: aReverVoz ? "Rever despesa" : modo.titulo
+        )
         .animation(.snappy, value: modo)
     }
 
@@ -189,9 +191,31 @@ struct RegistarView: View {
     private var entrada: some View {
         switch modo {
         case .texto: entradaDeTexto
-        case .voz: entradaDeVoz
+        case .voz:
+            // No ecrã "Rever despesa", o painel dá lugar ao cartão "DISSESTE".
+            if aReverVoz {
+                disseste
+            } else {
+                entradaDeVoz
+            }
         case .talao: entradaDeTalao
         }
+    }
+
+    /// O cartão areia do ecrã 09 com a frase gravada.
+    private var disseste: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("DISSESTE")
+                .font(.caption2.weight(.semibold))
+                .kerning(1.2)
+                .foregroundStyle(Tema.douradoEscuro)
+            Text("“\(viewModel.textoDeRegisto)”")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Tema.tinta)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
     }
 
     private var entradaDeTexto: some View {
@@ -389,7 +413,48 @@ struct RegistarView: View {
     }
 
     private var textoDoBotaoGuardar: String {
-        viewModel.origemDoRegisto == .talao ? "Confirmar e guardar" : "Guardar despesa"
+        switch viewModel.origemDoRegisto {
+        case .talao: "Confirmar e guardar"
+        case .voz: "Confirmar despesa"
+        default: "Guardar despesa"
+        }
+    }
+
+    /// O cartão areia "Depois desta despesa" do ecrã 09: o limite da
+    /// categoria depois de contar o valor proposto.
+    @ViewBuilder
+    private func depoisDaDespesa(_ atual: PropostaDeTransacao) -> some View {
+        if atual.tipo == .despesa,
+           let categoria = categorias.first(where: { $0.nome == atual.nomeDaCategoria }),
+           let orcamento = categoria.orcamentoMensal, orcamento > .zero {
+            let calendario = Calendar.current
+            let gastoAtual = transacoes
+                .filter {
+                    $0.tipo == .despesa
+                        && $0.categoria?.persistentModelID == categoria.persistentModelID
+                        && calendario.isDate($0.data, equalTo: .now, toGranularity: .month)
+                }
+                .reduce(Decimal.zero) { $0 + $1.valor }
+            let depois = gastoAtual + atual.valor
+            let restante = orcamento - depois
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Depois desta despesa")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Tema.tinta)
+                Text("\(categoria.nome): \(FormatadorDeMoeda.texto(depois)) de \(FormatadorDeMoeda.textoEmEurosInteiros(orcamento)) €")
+                    .font(.caption)
+                    .foregroundStyle(Tema.tintaSuave)
+                Text(restante >= .zero
+                    ? "Ficam \(FormatadorDeMoeda.texto(restante)) disponíveis."
+                    : "Passas o limite em \(FormatadorDeMoeda.texto(-restante)).")
+                    .font(.caption)
+                    .foregroundStyle(Tema.tintaSuave)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+        }
     }
 
     @ViewBuilder
@@ -438,11 +503,13 @@ struct RegistarView: View {
                         }
                         .labelsHidden()
                         .tint(Tema.tinta)
+                        .fixedSize()
                     }
 
                     linhaDeDetalhe("Data", simbolo: "calendar") {
                         DatePicker("", selection: ligacaoProposta.data, displayedComponents: .date)
                             .labelsHidden()
+                            .environment(\.locale, FormatadorDeMoeda.localidade)
                     }
 
                     linhaDeDetalhe("Conta", simbolo: "creditcard") {
@@ -453,6 +520,7 @@ struct RegistarView: View {
                         }
                         .labelsHidden()
                         .tint(Tema.tinta)
+                        .fixedSize()
                     }
                 }
                 .padding(18)
@@ -463,16 +531,31 @@ struct RegistarView: View {
                 )
                 .shadow(color: .black.opacity(0.05), radius: 12, y: 5)
 
+                if aReverVoz {
+                    depoisDaDespesa(atual)
+                }
+
                 botaoDeAcao(textoDoBotaoGuardar, acao: guardar)
 
-                Text(
-                    viewModel.origemDoRegisto == .talao
-                        ? "A fotografia fica associada ao movimento."
-                        : "Podes rever e corrigir tudo antes de guardar."
-                )
-                .font(.caption)
-                .foregroundStyle(Tema.tintaSuave)
-                .frame(maxWidth: .infinity)
+                if aReverVoz {
+                    // Deitar fora a proposta e voltar ao painel de gravação.
+                    Button("Voltar à gravação") {
+                        proposta = nil
+                        viewModel.proposta = nil
+                    }
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(Tema.douradoEscuro)
+                    .frame(maxWidth: .infinity)
+                } else {
+                    Text(
+                        viewModel.origemDoRegisto == .talao
+                            ? "A fotografia fica associada ao movimento."
+                            : "Podes rever e corrigir tudo antes de guardar."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(Tema.tintaSuave)
+                    .frame(maxWidth: .infinity)
+                }
             }
             .onAppear {
                 if contaEscolhida == nil {

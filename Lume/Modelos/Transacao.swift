@@ -26,6 +26,8 @@ final class Transacao {
     var loja: String?
     var data: Date = Date.now
     var nota: String?
+    /// A fotografia do talão que deu origem ao registo, para rever depois.
+    @Attribute(.externalStorage) var fotoDoTalao: Data?
     var criadaEm: Date = Date.now
     var origemRaw: String = OrigemTransacao.manual.rawValue
 

@@ -3,40 +3,77 @@ import SwiftUI
 /// Linhas partilhadas entre o ecrã Hoje e o separador Movimentos.
 /// Planas, como no Figma: texto sobre o fundo, sem ícones nem cartões.
 
+/// O cabeçalho de todos os ecrãs, como nos frames do Figma:
+/// legenda pequena em maiúsculas, título grande e o símbolo da Lume à direita.
+struct CabecalhoDeEcra: View {
+    let legenda: String
+    let titulo: String
+
+    var body: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(legenda)
+                    .font(.caption2.weight(.semibold))
+                    .kerning(1.2)
+                    .foregroundStyle(Tema.tintaSuave)
+                Text(titulo)
+                    .font(.title.weight(.bold))
+                    .foregroundStyle(Tema.tinta)
+            }
+            Spacer()
+            Image("SimboloLume")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 38, height: 38)
+                .accessibilityHidden(true)
+        }
+    }
+}
+
+/// Título de secção como no frame: grande e negro, com uma ação dourada à direita.
+struct TituloDeSeccao: View {
+    let titulo: String
+    var acao: String?
+    var aoTocar: (() -> Void)?
+
+    var body: some View {
+        HStack {
+            Text(titulo)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(Tema.tinta)
+            Spacer()
+            if let acao, let aoTocar {
+                Button(acao) { aoTocar() }
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(Tema.douradoEscuro)
+            }
+        }
+    }
+}
+
 struct LinhaDeTransacao: View {
+    /// Como no Figma: no Resumo o subtítulo é "Hoje · Supermercado";
+    /// no extrato dos Movimentos é "Supermercado · Talão".
+    enum Estilo {
+        case resumo
+        case extrato
+    }
+
     let transacao: Transacao
-    /// No Resumo a linha é exatamente como no Figma (sem cápsula da conta);
-    /// no extrato dos Movimentos a cápsula identifica o cartão.
-    var mostraConta = true
+    var estilo = Estilo.resumo
 
     var body: some View {
         HStack(spacing: 12) {
-            // Avatar com as iniciais da loja, como no novo design.
-            Text(iniciais)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Tema.douradoEscuro)
-                .frame(width: 38, height: 38)
-                .background(Tema.bege, in: RoundedRectangle(cornerRadius: 10))
+            AvatarDeIniciais(texto: titulo)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(titulo)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Tema.tinta)
-                HStack(spacing: 6) {
-                    if mostraConta, let conta = transacao.conta {
-                        // A etiqueta da conta usa a cor do cartão respetivo.
-                        Text(conta.nome)
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(conta.corDoCartao)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(conta.corDoCartao.opacity(0.12), in: Capsule())
-                    }
-                    if let detalhe {
-                        Text(detalhe)
-                            .font(.footnote)
-                            .foregroundStyle(Tema.tintaSuave)
-                    }
+                if let detalhe {
+                    Text(detalhe)
+                        .font(.footnote)
+                        .foregroundStyle(Tema.tintaSuave)
                 }
             }
 
@@ -56,16 +93,13 @@ struct LinhaDeTransacao: View {
         transacao.loja ?? transacao.descricao
     }
 
-    private var iniciais: String {
-        let palavras = titulo.split(separator: " ").prefix(2)
-        let letras = palavras.compactMap(\.first)
-        return letras.isEmpty ? "•" : String(letras).uppercased()
-    }
-
-    /// "Hoje · Supermercado", como no novo design.
     private var detalhe: String? {
-        let partes = [dataCurta, transacao.categoria?.nome].compactMap { $0 }
-        return partes.isEmpty ? nil : partes.joined(separator: " · ")
+        let partes: [String?] = switch estilo {
+        case .resumo: [dataCurta, transacao.categoria?.nome]
+        case .extrato: [transacao.categoria?.nome, transacao.origem.nome]
+        }
+        let visiveis = partes.compactMap { $0 }
+        return visiveis.isEmpty ? nil : visiveis.joined(separator: " · ")
     }
 
     private var dataCurta: String? {
@@ -80,6 +114,39 @@ struct LinhaDeTransacao: View {
     private var valorFormatado: String {
         let texto = FormatadorDeMoeda.texto(transacao.valor)
         return transacao.tipo == .receita ? "+\(texto)" : "−\(texto)"
+    }
+}
+
+/// Avatar quadrado com as iniciais da loja, como nos frames.
+struct AvatarDeIniciais: View {
+    let texto: String
+    var lado: CGFloat = 38
+
+    var body: some View {
+        Text(iniciais)
+            .font(lado > 44 ? .subheadline.weight(.semibold) : .caption.weight(.semibold))
+            .foregroundStyle(Tema.douradoEscuro)
+            .frame(width: lado, height: lado)
+            .background(Tema.bege, in: RoundedRectangle(cornerRadius: lado > 44 ? 14 : 10))
+            .accessibilityHidden(true)
+    }
+
+    private var iniciais: String {
+        let palavras = texto.split(separator: " ").prefix(2)
+        let letras = palavras.compactMap(\.first)
+        return letras.isEmpty ? "•" : String(letras).uppercased()
+    }
+}
+
+extension OrigemTransacao {
+    /// Nome curto no extrato ("Talão", "Voz"); o manual não se anuncia.
+    var nome: String? {
+        switch self {
+        case .manual: nil
+        case .texto: "Texto"
+        case .voz: "Voz"
+        case .talao: "Talão"
+        }
     }
 }
 
