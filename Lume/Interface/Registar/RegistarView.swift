@@ -279,21 +279,21 @@ struct RegistarView: View {
     private var entradaDeVoz: some View {
         VStack(spacing: 16) {
             VStack(spacing: 14) {
-                moedaDaMarca(44)
+                moedaDaMarca(78)
                 Text(gravador.aGravar ? "Estou a ouvir…" : "Toca em começar e fala")
-                    .font(Tema.fonte(17, .semibold))
+                    .font(Tema.fonte(23, .medium))
                     .foregroundStyle(Tema.tinta)
 
                 if gravador.aGravar {
                     BarrasDeVoz()
-                        .frame(height: 34)
+                        .frame(width: 270, height: 55)
                     if let inicio = inicioDaGravacao {
                         TimelineView(.periodic(from: inicio, by: 1)) { contextoDeTempo in
                             let segundos = max(0, Int(contextoDeTempo.date.timeIntervalSince(inicio)))
                             Text(String(format: "%02d:%02d", segundos / 60, segundos % 60))
                                 .font(Tema.fonte(12, .medium))
                                 .monospacedDigit()
-                                .foregroundStyle(Tema.tintaSuave)
+                                .foregroundStyle(Tema.douradoEscuro)
                         }
                     }
                 }
@@ -306,38 +306,46 @@ struct RegistarView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 28)
-            .padding(.horizontal, 20)
+            .padding(24)
             .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
 
             if gravador.aGravar, !viewModel.textoDeRegisto.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+                // O cartão branco da transcrição, como no frame.
+                VStack(alignment: .leading, spacing: 12) {
                     Text("TRANSCRIÇÃO EM TEMPO REAL")
-                        .font(Tema.fonte(11))
+                        .font(Tema.fonte(10, .semibold))
                         .foregroundStyle(Tema.tintaSuave)
                     Text("“\(viewModel.textoDeRegisto)”")
-                        .font(Tema.fonte(18, .semibold))
+                        .font(Tema.fonte(22, .medium))
                         .foregroundStyle(Tema.tinta)
 
-                    // O valor e a categoria percebidos ao vivo, como no frame.
+                    // O valor e a categoria percebidos ao vivo, em chips de 32 pt.
                     if let direto = propostaEmDireto, direto.valor > 0 {
-                        HStack(spacing: 10) {
+                        HStack(spacing: 8) {
                             Text(FormatadorDeMoeda.texto(direto.valor))
                                 .font(Tema.fonte(12, .semibold))
                                 .monospacedDigit()
                                 .foregroundStyle(Tema.douradoEscuro)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Tema.areia, in: Capsule())
+                                .padding(.horizontal, 16)
+                                .frame(height: 32)
+                                .background(Tema.areia, in: RoundedRectangle(cornerRadius: 16))
                             if let categoria = direto.nomeDaCategoria {
                                 Text(categoria)
                                     .font(Tema.fonte(12))
                                     .foregroundStyle(Tema.tintaSuave)
+                                    .padding(.horizontal, 16)
+                                    .frame(height: 32)
                             }
                         }
                     }
                 }
+                .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Tema.Raio.cartao)
+                        .strokeBorder(Tema.separador, lineWidth: 1)
+                )
             }
 
             botaoDeAcao(gravador.aGravar ? "Terminar e rever" : "Começar a falar") {
@@ -353,9 +361,9 @@ struct RegistarView: View {
             }
 
             Text("A despesa só é guardada depois de confirmares.")
-                .font(Tema.fonte(12))
+                .font(Tema.fonte(11))
                 .foregroundStyle(Tema.tintaSuave)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .animation(.snappy, value: gravador.aGravar)
     }
@@ -644,9 +652,9 @@ struct RegistarView: View {
                             ? "A fotografia fica associada ao movimento."
                             : "Podes rever e corrigir tudo antes de guardar."
                     )
-                    .font(Tema.fonte(12))
+                    .font(Tema.fonte(11))
                     .foregroundStyle(Tema.tintaSuave)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .onAppear {
@@ -739,18 +747,19 @@ private struct BordaDeTalao: Shape {
     }
 }
 
-/// A onda de voz do frame: barras douradas a "respirar" enquanto grava.
+/// A onda de voz do frame: 19 barras douradas de 5 pt (raio 3, gap 6,
+/// até 55 pt) a "respirar" enquanto grava.
 private struct BarrasDeVoz: View {
     var body: some View {
         TimelineView(.animation) { contextoDeTempo in
             let tempo = contextoDeTempo.date.timeIntervalSinceReferenceDate
-            HStack(spacing: 3) {
-                ForEach(0..<26, id: \.self) { indice in
+            HStack(spacing: 6) {
+                ForEach(0..<19, id: \.self) { indice in
                     let fase = tempo * 5 + Double(indice) * 0.9
-                    let altura = 8 + 22 * abs(sin(fase)) * (0.4 + 0.6 * abs(sin(Double(indice) * 1.7)))
-                    Capsule()
+                    let altura = 9 + 46 * abs(sin(fase)) * (0.35 + 0.65 * abs(sin(Double(indice) * 1.7)))
+                    RoundedRectangle(cornerRadius: 3)
                         .fill(Tema.douradoEscuro)
-                        .frame(width: 3, height: altura)
+                        .frame(width: 5, height: altura)
                 }
             }
         }
