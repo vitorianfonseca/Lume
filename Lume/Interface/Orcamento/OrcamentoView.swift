@@ -533,56 +533,64 @@ private struct FormularioDeObjetivo: View {
                 )
 
                 if meta == nil {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label {
-                            Text("O próximo passo começa aqui.")
-                                .font(Tema.fonte(15, .semibold))
-                                .foregroundStyle(Tema.tinta)
-                        } icon: {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 10) {
                             Image(systemName: "target")
-                                .font(Tema.fonte(13))
+                                .font(.system(size: 18))
                                 .foregroundStyle(Tema.douradoEscuro)
+                            Text("O próximo passo começa aqui.")
+                                .font(Tema.fonte(17, .semibold))
+                                .foregroundStyle(Tema.tinta)
                         }
                         Text("Define um valor e uma data. O Lume ajuda-te a acompanhar o caminho.")
-                            .font(Tema.fonte(12))
+                            .font(Tema.fonte(13))
                             .foregroundStyle(Tema.tintaSuave)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
+                    .padding(20)
                     .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
                 }
 
-                campo("NOME DO OBJETIVO") {
-                    TextField("Próxima viagem", text: $nome)
-                }
-                campo("PARA QUE SERVE? (OPCIONAL)") {
-                    TextField("Um plano para dezembro", text: $descricao)
-                }
-                campo("QUANTO QUERES JUNTAR?") {
-                    TextField("1 500,00 €", value: $valorAlvo, format: moeda)
-                        .keyboardType(.decimalPad)
-                }
-                campo("ATÉ QUANDO?") {
-                    HStack {
-                        Toggle("", isOn: $temPrazo)
-                            .labelsHidden()
-                            .tint(Tema.dourado)
-                        if temPrazo {
-                            DatePicker("", selection: $prazo, displayedComponents: .date)
+                // Os campos vivem num cartão branco, como no frame.
+                VStack(alignment: .leading, spacing: 16) {
+                    campo("NOME DO OBJETIVO") {
+                        TextField("Próxima viagem", text: $nome)
+                    }
+                    campo("PARA QUE SERVE? (OPCIONAL)") {
+                        TextField("Um plano para dezembro", text: $descricao)
+                    }
+                    campo("QUANTO QUERES JUNTAR?") {
+                        TextField("1 500,00 €", value: $valorAlvo, format: moeda)
+                            .keyboardType(.decimalPad)
+                    }
+                    campo("ATÉ QUANDO?") {
+                        HStack {
+                            Toggle("", isOn: $temPrazo)
                                 .labelsHidden()
-                                .environment(\.locale, FormatadorDeMoeda.localidade)
-                        } else {
-                            Text("Sem data definida")
-                                .font(Tema.fonte(15))
-                                .foregroundStyle(Tema.tintaSuave)
+                                .tint(Tema.dourado)
+                                .scaleEffect(0.8, anchor: .leading)
+                            if temPrazo {
+                                DatePicker("", selection: $prazo, displayedComponents: .date)
+                                    .labelsHidden()
+                                    .environment(\.locale, FormatadorDeMoeda.localidade)
+                            } else {
+                                Text("Sem data definida")
+                                    .font(Tema.fonte(16, .medium))
+                                    .foregroundStyle(Tema.tintaSuave)
+                            }
                         }
-                        Spacer()
+                    }
+                    campo("VALOR INICIAL") {
+                        TextField("0,00 €", value: $valorInicial, format: moeda)
+                            .keyboardType(.decimalPad)
                     }
                 }
-                campo("VALOR INICIAL") {
-                    TextField("0,00 €", value: $valorInicial, format: moeda)
-                        .keyboardType(.decimalPad)
-                }
+                .padding(20)
+                .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Tema.Raio.cartao)
+                        .strokeBorder(Tema.separador, lineWidth: 1)
+                )
 
                 Button {
                     guardar()
@@ -596,9 +604,9 @@ private struct FormularioDeObjetivo: View {
                 .disabled(nome.trimmingCharacters(in: .whitespaces).isEmpty || valorAlvo <= .zero)
 
                 Text("Podes alterar o valor ou a data a qualquer momento.")
-                    .font(Tema.fonte(12))
+                    .font(Tema.fonte(11))
                     .foregroundStyle(Tema.tintaSuave)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 if let meta {
                     Button("Eliminar objetivo", role: .destructive) {
@@ -618,15 +626,26 @@ private struct FormularioDeObjetivo: View {
         .presentationDragIndicator(.visible)
     }
 
+    /// Campo do frame: legenda 10 SemiBold e caixa de 43 pt (raio 12)
+    /// com o texto 16 Medium.
     private func campo(_ legenda: String, @ViewBuilder conteudo: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(legenda)
-                .font(Tema.fonte(11))
+                .font(Tema.fonte(10, .semibold))
                 .foregroundStyle(Tema.tintaSuave)
-            conteudo()
-                .font(Tema.fonte(15))
-                .foregroundStyle(Tema.tinta)
-            Divider().overlay(Tema.separador)
+            HStack {
+                conteudo()
+                    .font(Tema.fonte(16, .medium))
+                    .foregroundStyle(Tema.tinta)
+                Spacer(minLength: 0)
+            }
+            .padding(.leading, 12)
+            .frame(height: 43)
+            .background(Tema.fundo, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Tema.separador, lineWidth: 1)
+            )
         }
     }
 
