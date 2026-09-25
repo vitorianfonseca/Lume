@@ -86,7 +86,7 @@ struct CartaoDeConfirmacaoView: View {
                 format: .currency(code: "EUR").locale(FormatadorDeMoeda.localidade)
             )
             .keyboardType(.decimalPad)
-            .font(Tema.fonte(34, .semibold))
+            .font(Tema.fonte(36, .medium))
             .monospacedDigit()
             .foregroundStyle(Tema.tinta)
 

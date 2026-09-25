@@ -230,16 +230,16 @@ struct RegistarView: View {
 
     /// O cartão areia do ecrã 09 com a frase gravada.
     private var disseste: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("DISSESTE")
-                .font(Tema.fonte(11))
+                .font(Tema.fonte(11, .semibold))
                 .foregroundStyle(Tema.douradoEscuro)
             Text("“\(viewModel.textoDeRegisto)”")
-                .font(Tema.fonte(18, .semibold))
+                .font(Tema.fonte(22, .medium))
                 .foregroundStyle(Tema.tinta)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
+        .padding(20)
         .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
     }
 
@@ -539,22 +539,22 @@ struct RegistarView: View {
             let depois = gastoAtual + atual.valor
             let restante = orcamento - depois
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Depois desta despesa")
-                    .font(Tema.fonte(15, .semibold))
+                    .font(Tema.fonte(13, .semibold))
                     .foregroundStyle(Tema.tinta)
-                Text("\(categoria.nome): \(FormatadorDeMoeda.texto(depois)) de \(FormatadorDeMoeda.textoEmEurosInteiros(orcamento)) €")
-                    .font(Tema.fonte(12))
+                Text("\(categoria.nome): \(FormatadorDeMoeda.textoSimples(depois)) € de \(FormatadorDeMoeda.textoInteiroAgrupado(orcamento)) €")
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.tintaSuave)
                 Text(restante >= .zero
-                    ? "Ficam \(FormatadorDeMoeda.texto(restante)) disponíveis."
-                    : "Passas o limite em \(FormatadorDeMoeda.texto(-restante)).")
-                    .font(Tema.fonte(12))
+                    ? "Ficam \(FormatadorDeMoeda.textoSimples(restante)) € disponíveis."
+                    : "Passas o limite em \(FormatadorDeMoeda.textoSimples(-restante)) €.")
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.tintaSuave)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+            .padding(18)
+            .background(Tema.bege, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
         }
     }
 
@@ -566,21 +566,29 @@ struct RegistarView: View {
                 set: { proposta = $0 }
             )
             VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Label(tituloDoReconhecimento, systemImage: "checkmark")
-                        .font(Tema.fonte(13, .medium))
-                        .foregroundStyle(Tema.positivo)
-                    Spacer()
+                if !aReverVoz {
+                    HStack {
+                        Label(tituloDoReconhecimento, systemImage: "checkmark")
+                            .font(Tema.fonte(12, .medium))
+                            .foregroundStyle(Tema.positivo)
+                        Spacer()
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         TextField("Descrição", text: ligacaoProposta.descricao)
-                            .font(Tema.fonte(17, .semibold))
+                            .font(Tema.fonte(aReverVoz ? 21 : 17, .semibold))
                             .foregroundStyle(Tema.tinta)
-                        Image(systemName: "creditcard")
-                            .font(Tema.fonte(13))
-                            .foregroundStyle(Tema.douradoEscuro)
+                        if aReverVoz {
+                            Image(systemName: "checkmark")
+                                .font(Tema.fonte(14, .semibold))
+                                .foregroundStyle(Tema.positivo)
+                        } else {
+                            Image(systemName: "creditcard")
+                                .font(Tema.fonte(13))
+                                .foregroundStyle(Tema.douradoEscuro)
+                        }
                     }
 
                     TextField(
@@ -589,7 +597,7 @@ struct RegistarView: View {
                         format: .currency(code: "EUR").locale(FormatadorDeMoeda.localidade)
                     )
                     .keyboardType(.decimalPad)
-                    .font(Tema.fonte(34, .semibold))
+                    .font(Tema.fonte(aReverVoz ? 40 : 36, .medium))
                     .monospacedDigit()
                     .foregroundStyle(Tema.tinta)
 
@@ -639,13 +647,16 @@ struct RegistarView: View {
 
                 if aReverVoz {
                     // Deitar fora a proposta e voltar ao painel de gravação.
-                    Button("Voltar à gravação") {
+                    Button {
                         proposta = nil
                         viewModel.proposta = nil
+                    } label: {
+                        Text("Voltar à gravação")
+                            .font(Tema.fonte(12))
+                            .foregroundStyle(Tema.tintaSuave)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 32)
                     }
-                    .font(Tema.fonte(13, .medium))
-                    .foregroundStyle(Tema.douradoEscuro)
-                    .frame(maxWidth: .infinity)
                 } else {
                     Text(
                         viewModel.origemDoRegisto == .talao
