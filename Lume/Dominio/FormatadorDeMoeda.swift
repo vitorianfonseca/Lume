@@ -39,6 +39,20 @@ nonisolated enum FormatadorDeMoeda {
         "\((valor as NSDecimalNumber).intValue)"
     }
 
+    /// Inteiros com milhares agrupados e sem decimais: "2 100".
+    static func textoInteiroAgrupado(_ valor: Decimal) -> String {
+        let digitos = Array(textoEmEurosInteiros(valor))
+        guard digitos.count > 3, digitos.first != "-" else { return String(digitos) }
+        var resultado = ""
+        for (indice, digito) in digitos.enumerated() {
+            if indice > 0, (digitos.count - indice) % 3 == 0 {
+                resultado.append("\u{00A0}")
+            }
+            resultado.append(digito)
+        }
+        return resultado
+    }
+
     /// Sem símbolo: inteiro quando não há cêntimos ("441"), senão "142,80".
     static func textoSimples(_ valor: Decimal) -> String {
         let inteiro = Decimal((valor as NSDecimalNumber).intValue)

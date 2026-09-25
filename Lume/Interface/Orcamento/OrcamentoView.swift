@@ -16,7 +16,12 @@ struct OrcamentoView: View {
     @Query private var transacoes: [Transacao]
     @Query(sort: \Meta.nome) private var metas: [Meta]
 
-    @State private var segmento = Segmento.orcamentos
+    @State private var segmento: Segmento
+
+    /// O arranque nos Objetivos serve as pré-visualizações.
+    init(mostrarObjetivos: Bool = false) {
+        self.segmento = mostrarObjetivos ? .objetivos : .orcamentos
+    }
     @State private var mostrarEditarLimites = false
     @State private var mostrarNovoObjetivo = false
     @State private var metaEmEdicao: Meta?
@@ -24,7 +29,7 @@ struct OrcamentoView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 12) {
                 CabecalhoDeEcra(
                     legenda: segmento == .orcamentos
                         ? "MAIS TRANQUILIDADE, TODOS OS DIAS"
@@ -187,28 +192,25 @@ struct OrcamentoView: View {
 
     @ViewBuilder
     private var objetivos: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("JÁ RESERVASTE")
-                .font(Tema.fonte(11))
+                .font(Tema.fonte(11, .semibold))
                 .foregroundStyle(Tema.douradoEscuro)
             Text(FormatadorDeMoeda.texto(totalReservado))
-                .font(Tema.fonte(34, .semibold))
+                .font(Tema.fonte(35, .medium))
                 .monospacedDigit()
                 .foregroundStyle(Tema.tinta)
             Text("reservado para os teus planos · continua assim")
-                .font(Tema.fonte(12))
-                .foregroundStyle(Tema.tintaSuave)
+                .font(Tema.fonte(12, .medium))
+                .foregroundStyle(Tema.positivo)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
+        .padding(20)
         .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
 
-        VStack(alignment: .leading, spacing: 22) {
-            ForEach(metas) { meta in
-                linhaDeObjetivo(meta)
-            }
+        ForEach(metas) { meta in
+            linhaDeObjetivo(meta)
         }
-        .padding(.top, 4)
 
         Button {
             mostrarNovoObjetivo = true
@@ -228,49 +230,57 @@ struct OrcamentoView: View {
             / (meta.valorAlvo as NSDecimalNumber).doubleValue
     }
 
+    /// O cartão de objetivo do frame: título 17 SemiBold com o alvo à
+    /// direita, valor 24 Medium e "Reforçar objetivo +" em dourado.
     private func linhaDeObjetivo(_ meta: Meta) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(meta.nome)
-                        .font(Tema.fonte(15, .semibold))
-                        .foregroundStyle(Tema.tinta)
-                    if let descricao = meta.descricao, !descricao.isEmpty {
-                        Text(descricao)
-                            .font(Tema.fonte(12))
-                            .foregroundStyle(Tema.tintaSuave)
-                    }
-                }
+            HStack {
+                Text(meta.nome)
+                    .font(Tema.fonte(17, .semibold))
+                    .foregroundStyle(Tema.tinta)
                 Spacer()
                 Image(systemName: meta.simbolo)
-                    .font(Tema.fonte(13))
+                    .font(.system(size: 16))
                     .foregroundStyle(Tema.douradoEscuro)
             }
 
+            if let descricao = meta.descricao, !descricao.isEmpty {
+                Text(descricao)
+                    .font(Tema.fonte(12))
+                    .foregroundStyle(Tema.tintaSuave)
+            }
+
             HStack(alignment: .firstTextBaseline) {
-                Text(FormatadorDeMoeda.texto(meta.valorPoupado))
-                    .font(Tema.fonte(17, .semibold))
+                Text("\(FormatadorDeMoeda.textoInteiroAgrupado(meta.valorPoupado)) €")
+                    .font(Tema.fonte(24, .medium))
                     .monospacedDigit()
                     .foregroundStyle(Tema.tinta)
                 Spacer()
-                Text("de \(FormatadorDeMoeda.textoEmEurosInteiros(meta.valorAlvo)) €")
-                    .font(Tema.fonte(13))
+                Text("de \(FormatadorDeMoeda.textoInteiroAgrupado(meta.valorAlvo)) €")
+                    .font(Tema.fonte(12))
                     .monospacedDigit()
                     .foregroundStyle(Tema.tintaSuave)
             }
 
-            BarraDeProgresso(fracao: fracao(de: meta), dourada: true, altura: 4)
+            BarraDeProgresso(fracao: fracao(de: meta))
 
             HStack {
                 Text("\(Int((fracao(de: meta) * 100).rounded()))% concluído")
-                    .font(Tema.fonte(12))
+                    .font(Tema.fonte(11))
                     .foregroundStyle(Tema.tintaSuave)
                 Spacer()
-                Button("Reforçar objetivo →") { metaAReforcar = meta }
+                Button("Reforçar objetivo  +") { metaAReforcar = meta }
                     .font(Tema.fonte(12, .medium))
                     .foregroundStyle(Tema.douradoEscuro)
             }
         }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+        .overlay(
+            RoundedRectangle(cornerRadius: Tema.Raio.cartao)
+                .strokeBorder(Tema.separador, lineWidth: 1)
+        )
         .contentShape(Rectangle())
         .onTapGesture { metaEmEdicao = meta }
         .accessibilityElement(children: .combine)
@@ -695,7 +705,12 @@ private struct ReforcoDeObjetivo: View {
     }
 }
 
-#Preview {
+#Preview("Orçamentos") {
     OrcamentoView()
+        .modelContainer(ContentorDeDados.emMemoria())
+}
+
+#Preview("Objetivos") {
+    OrcamentoView(mostrarObjetivos: true)
         .modelContainer(ContentorDeDados.emMemoria())
 }
