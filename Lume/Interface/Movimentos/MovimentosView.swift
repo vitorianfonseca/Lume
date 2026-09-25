@@ -213,8 +213,7 @@ struct MovimentosView: View {
                 }
                 .accessibilityAddTraits(filtro == opcao ? [.isSelected] : [])
             }
-            Spacer()
-            // O ícone de filtro: escolhe uma categoria para afinar a lista.
+            // O ícone de filtro vem logo a seguir aos chips, como no frame.
             Menu {
                 Picker("Categoria", selection: $categoriaFiltrada) {
                     Text("Todas as categorias").tag(String?.none)
@@ -226,8 +225,10 @@ struct MovimentosView: View {
                 Image(systemName: "line.3.horizontal.decrease")
                     .font(Tema.fonte(15))
                     .foregroundStyle(categoriaFiltrada == nil ? Tema.tintaFosca : Tema.douradoEscuro)
+                    .padding(.leading, 4)
             }
             .accessibilityLabel("Filtrar por categoria")
+            Spacer()
         }
         // Dentro de uma linha de List, só com .borderless é que cada
         // botão recebe o toque individualmente.

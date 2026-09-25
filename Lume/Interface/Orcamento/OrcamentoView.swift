@@ -66,18 +66,17 @@ struct OrcamentoView: View {
                     withAnimation(.snappy) { segmento = opcao }
                 } label: {
                     Text(opcao.rawValue)
-                        .font(Tema.fonte(13, segmento == opcao ? .semibold : .regular))
+                        .font(Tema.fonte(12, segmento == opcao ? .semibold : .regular))
                         .foregroundStyle(segmento == opcao ? Tema.douradoEscuro : Tema.tintaSuave)
-                        .padding(.horizontal, 16)
-                        .frame(height: 38)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 32)
                         .background(
                             segmento == opcao ? AnyShapeStyle(Tema.areia) : AnyShapeStyle(.clear),
-                            in: RoundedRectangle(cornerRadius: Tema.Raio.chip)
+                            in: RoundedRectangle(cornerRadius: 16)
                         )
                 }
                 .accessibilityAddTraits(segmento == opcao ? [.isSelected] : [])
             }
-            Spacer()
         }
     }
 
@@ -101,26 +100,36 @@ struct OrcamentoView: View {
 
     @ViewBuilder
     private var orcamentos: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        // O cartão branco do frame: mês, total 31 Medium, barra e utilização.
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(Date.now.formatted(.dateTime.month(.wide).locale(FormatadorDeMoeda.localidade)).capitalized)
-                    .font(Tema.fonte(15, .semibold))
+                    .font(Tema.fonte(14, .medium))
                     .foregroundStyle(Tema.tinta)
                 Spacer()
                 Button("Editar limites") { mostrarEditarLimites = true }
-                    .font(Tema.fonte(13, .medium))
+                    .font(Tema.fonte(12, .medium))
                     .foregroundStyle(Tema.douradoEscuro)
             }
 
             Text(FormatadorDeMoeda.texto(rendimentoDoMes))
-                .font(Tema.fonte(34, .semibold))
+                .font(Tema.fonte(31, .medium))
                 .monospacedDigit()
                 .foregroundStyle(Tema.tinta)
 
+            BarraDeProgresso(fracao: fracaoUtilizada)
+
             Text(resumoDeUtilizacao)
-                .font(Tema.fonte(13))
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
         }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+        .overlay(
+            RoundedRectangle(cornerRadius: Tema.Raio.cartao)
+                .strokeBorder(Tema.separador, lineWidth: 1)
+        )
 
         if comOrcamento.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
@@ -133,13 +142,19 @@ struct OrcamentoView: View {
             }
             .padding(.top, 8)
         } else {
-            VStack(alignment: .leading, spacing: 18) {
+            // Linhas de 74 pt encostadas, como no frame (gap 2).
+            VStack(alignment: .leading, spacing: 2) {
                 ForEach(comOrcamento) { categoria in
                     LinhaDeOrcamento(categoria: categoria, gasto: gastoDoMes(em: categoria))
                 }
             }
-            .padding(.top, 8)
         }
+    }
+
+    private var fracaoUtilizada: Double {
+        guard rendimentoDoMes > .zero else { return 0 }
+        return (gastoDoMesTotal as NSDecimalNumber).doubleValue
+            / (rendimentoDoMes as NSDecimalNumber).doubleValue
     }
 
     private var resumoDeUtilizacao: String {
@@ -270,24 +285,27 @@ private struct LinhaDeOrcamento: View {
     let gasto: Decimal
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        // O componente "Lume / Categoria de orçamento": 74 pt, nome 14 Medium,
+        // valores 12 ("142,80 / 180 €"), barra 5 e "disponíveis" em 11.
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
                 Text(categoria.nome)
-                    .font(Tema.fonte(15))
+                    .font(Tema.fonte(14, .medium))
                     .foregroundStyle(Tema.tinta)
                 Spacer()
-                Text("\(FormatadorDeMoeda.textoEmEurosInteiros(gasto)) / \(FormatadorDeMoeda.textoEmEurosInteiros(orcamento)) €")
-                    .font(Tema.fonte(13))
+                Text("\(FormatadorDeMoeda.textoSimples(gasto)) / \(FormatadorDeMoeda.textoSimples(orcamento)) €")
+                    .font(Tema.fonte(12))
                     .monospacedDigit()
                     .foregroundStyle(Tema.tintaSuave)
             }
 
-            BarraDeProgresso(fracao: fracao, dourada: true, altura: 4)
+            BarraDeProgresso(fracao: fracao)
 
             Text(legendaDisponivel)
-                .font(Tema.fonte(12))
+                .font(Tema.fonte(11))
                 .foregroundStyle(Tema.tintaSuave)
         }
+        .frame(height: 74)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(categoria.nome): \(FormatadorDeMoeda.texto(gasto)) de \(FormatadorDeMoeda.texto(orcamento))")
     }
@@ -302,9 +320,9 @@ private struct LinhaDeOrcamento: View {
     private var legendaDisponivel: String {
         let restante = orcamento - gasto
         guard restante >= .zero else {
-            return "\(FormatadorDeMoeda.textoEmEurosInteiros(-restante)) € acima do limite"
+            return "\(FormatadorDeMoeda.textoSimples(-restante)) € acima do limite"
         }
-        return "\(FormatadorDeMoeda.textoEmEurosInteiros(restante)) € disponíveis"
+        return "\(FormatadorDeMoeda.textoSimples(restante)) € disponíveis"
     }
 }
 

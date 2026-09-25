@@ -38,4 +38,11 @@ nonisolated enum FormatadorDeMoeda {
     static func textoEmEurosInteiros(_ valor: Decimal) -> String {
         "\((valor as NSDecimalNumber).intValue)"
     }
+
+    /// Sem símbolo: inteiro quando não há cêntimos ("441"), senão "142,80".
+    static func textoSimples(_ valor: Decimal) -> String {
+        let inteiro = Decimal((valor as NSDecimalNumber).intValue)
+        guard valor != inteiro else { return textoEmEurosInteiros(valor) }
+        return valor.formatted(.number.precision(.fractionLength(2)).locale(localidade))
+    }
 }
