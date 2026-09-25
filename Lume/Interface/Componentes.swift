@@ -135,13 +135,14 @@ struct IconeDeTexto: View {
 struct AvatarDeIniciais: View {
     let texto: String
     var lado: CGFloat = 40
+    var fundo = Tema.bege
 
     var body: some View {
         Text(iniciais)
-            .font(Tema.fonte(lado > 44 ? 15 : 12, .semibold))
+            .font(Tema.fonte(lado > 44 ? 16 : 12, .semibold))
             .foregroundStyle(Tema.douradoEscuro)
             .frame(width: lado, height: lado)
-            .background(Tema.bege, in: RoundedRectangle(cornerRadius: lado > 44 ? 16 : 13))
+            .background(fundo, in: RoundedRectangle(cornerRadius: lado > 44 ? 16 : 13))
             .accessibilityHidden(true)
     }
 

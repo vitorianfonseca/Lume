@@ -21,41 +21,42 @@ struct DefinicoesView: View {
                     CabecalhoDeEcra(legenda: "TUDO AO TEU GOSTO", titulo: "O teu espaço")
 
                     perfil
-                    estadoDoICloud
 
+                    // O cartão de preferências do frame: linhas de 49 pt
+                    // sem divisórias.
                     VStack(spacing: 0) {
                         linhaDeNavegacao("Contas e carteiras", simbolo: "creditcard", valor: "\(contas.count) \(contas.count == 1 ? "conta" : "contas")") {
                             ContasECarteirasView()
                         }
-                        Divider().overlay(Tema.separador)
                         linhaDeNavegacao("Categorias", simbolo: "square.grid.2x2", valor: "\(categorias.count) categorias") {
                             CategoriasView()
                         }
-                        Divider().overlay(Tema.separador)
                         linhaDeNavegacao("Contas fixas", simbolo: "arrow.triangle.2.circlepath", valor: recorrentes.isEmpty ? "Nenhuma" : "\(recorrentes.count) ativas") {
                             RecorrentesView()
                         }
-                        Divider().overlay(Tema.separador)
                         linhaDeNavegacao("Notificações", simbolo: "bell", valor: recorrentes.contains(where: \.ativa) ? "Ativas" : "Desligadas") {
                             NotificacoesView()
                         }
-                        Divider().overlay(Tema.separador)
                         linhaDeNavegacao("Aparência", simbolo: "person", valor: "Branco") {
                             AparenciaView()
                         }
-                        Divider().overlay(Tema.separador)
-                        linhaDeNavegacao("Moeda", simbolo: "eurosign", valor: "Euro · EUR") {
+                        linhaDeNavegacao("Moeda", simbolo: "creditcard.and.123", valor: "Euro · EUR") {
                             MoedaView()
                         }
-                        Divider().overlay(Tema.separador)
                         linhaDeNavegacao("Inteligência", simbolo: "sparkles", valor: CofreDeChaves.ler(CofreDeChaves.contaClaude)?.isEmpty == false ? "Claude" : "Local") {
                             InteligenciaView()
                         }
-                        Divider().overlay(Tema.separador)
                         linhaDeNavegacao("Dados", simbolo: "tray", valor: "") {
                             DadosView()
                         }
                     }
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 6)
+                    .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Tema.Raio.cartao)
+                            .strokeBorder(Tema.separador, lineWidth: 1)
+                    )
 
                     notaDePrivacidade
 
@@ -65,7 +66,7 @@ struct DefinicoesView: View {
                             .foregroundStyle(Tema.douradoEscuro)
                         Spacer()
                         Text("Lume · versão 1.0")
-                            .font(Tema.fonte(12))
+                            .font(Tema.fonte(11))
                             .foregroundStyle(Tema.tintaSuave)
                     }
                     .padding(.top, 4)
@@ -89,47 +90,55 @@ struct DefinicoesView: View {
 
     // MARK: - Perfil e iCloud
 
+    /// O cartão de perfil do frame: avatar 48 em areia, nome 21 SemiBold
+    /// e a linha do iCloud em verde.
     private var perfil: some View {
         Button {
             nomeEmEdicao = nomeDePerfil
             aEditarNome = true
         } label: {
-            HStack(spacing: 12) {
-                AvatarDeIniciais(texto: nomeDePerfil, lado: 48)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(nomeDePerfil)
-                        .font(Tema.fonte(17, .semibold))
-                        .foregroundStyle(Tema.tinta)
-                    Text("O teu espaço pessoal")
-                        .font(Tema.fonte(13))
-                        .foregroundStyle(Tema.tintaSuave)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 14) {
+                    AvatarDeIniciais(texto: nomeDePerfil, lado: 48, fundo: Tema.areia)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(nomeDePerfil)
+                            .font(Tema.fonte(21, .semibold))
+                            .foregroundStyle(Tema.tinta)
+                        Text("O teu espaço pessoal")
+                            .font(Tema.fonte(12))
+                            .foregroundStyle(Tema.tintaSuave)
+                    }
+                    Spacer()
                 }
-                Spacer()
+                HStack(spacing: 8) {
+                    Image(systemName: "icloud")
+                        .font(Tema.fonte(13))
+                        .foregroundStyle(Tema.positivo)
+                    Text("iCloud atualizado · há instantes")
+                        .font(Tema.fonte(12))
+                        .foregroundStyle(Tema.positivo)
+                }
+                .frame(height: 32)
             }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+            .overlay(
+                RoundedRectangle(cornerRadius: Tema.Raio.cartao)
+                    .strokeBorder(Tema.separador, lineWidth: 1)
+            )
         }
         .accessibilityLabel("Alterar o nome do perfil")
     }
 
-    private var estadoDoICloud: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "icloud")
-                .font(Tema.fonte(13))
-                .foregroundStyle(Tema.tintaSuave)
-            Text("iCloud ativo · os dados sincronizam automaticamente")
-                .font(Tema.fonte(13))
-                .foregroundStyle(Tema.tintaSuave)
-        }
-    }
-
     private var notaDePrivacidade: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Label {
-                Text("Os teus dados são teus.")
-                    .font(Tema.fonte(15, .semibold))
-                    .foregroundStyle(Tema.tinta)
-            } icon: {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
                 Image(systemName: "lock")
                     .font(Tema.fonte(13))
+                    .foregroundStyle(Tema.positivo)
+                Text("Os teus dados são teus.")
+                    .font(Tema.fonte(14, .semibold))
                     .foregroundStyle(Tema.positivo)
             }
             Text("Regista offline e gere a sincronização com o teu iCloud nas definições.")
@@ -137,8 +146,8 @@ struct DefinicoesView: View {
                 .foregroundStyle(Tema.tintaSuave)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Tema.positivo.opacity(0.08), in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+        .padding(18)
+        .background(Color(claro: 0xEAF1EA, escuro: 0x22291F), in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
     }
 
     private func linhaDeNavegacao(
@@ -156,19 +165,19 @@ struct DefinicoesView: View {
                     .foregroundStyle(Tema.tintaFosca)
                     .frame(width: 20)
                 Text(titulo)
-                    .font(Tema.fonte(15))
+                    .font(Tema.fonte(13, .medium))
                     .foregroundStyle(Tema.tinta)
                 Spacer()
                 if !valor.isEmpty {
                     Text(valor)
-                        .font(Tema.fonte(13))
+                        .font(Tema.fonte(11))
                         .foregroundStyle(Tema.tintaSuave)
                 }
                 Image(systemName: "chevron.right")
                     .font(Tema.fonte(11))
                     .foregroundStyle(Tema.tintaSuave)
             }
-            .padding(.vertical, 13)
+            .frame(height: 49)
         }
     }
 }
