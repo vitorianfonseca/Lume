@@ -108,10 +108,9 @@ struct BoasVindasView: View {
     private func botao(_ titulo: String, ativo: Bool = true, acao: @escaping () -> Void) -> some View {
         Button(action: acao) {
             Text(titulo)
-                .font(.headline)
+                .font(Tema.fonte(15, .semibold))
                 .foregroundStyle(Color(hex: "302B24"))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
+                .frame(maxWidth: .infinity, minHeight: 52)
                 .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
         }
         .disabled(!ativo)
@@ -119,7 +118,7 @@ struct BoasVindasView: View {
 
     private func ligacao(_ titulo: String, acao: @escaping () -> Void) -> some View {
         Button(titulo, action: acao)
-            .font(.footnote.weight(.medium))
+            .font(Tema.fonte(13, .medium))
             .foregroundStyle(Tema.douradoEscuro)
             .frame(maxWidth: .infinity)
     }
@@ -127,11 +126,10 @@ struct BoasVindasView: View {
     private func campo(_ legenda: String, @ViewBuilder conteudo: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(legenda)
-                .font(.caption2.weight(.semibold))
-                .kerning(1.2)
+                .font(Tema.fonte(11))
                 .foregroundStyle(Tema.tintaSuave)
             conteudo()
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .foregroundStyle(Tema.tinta)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
@@ -146,13 +144,13 @@ struct BoasVindasView: View {
     private func cartaoAreia(simbolo: String, titulo: String, texto: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Image(systemName: simbolo)
-                .font(.title3)
+                .font(Tema.fonte(21, .medium))
                 .foregroundStyle(Tema.douradoEscuro)
             Text(titulo)
-                .font(.subheadline.weight(.semibold))
+                .font(Tema.fonte(15, .semibold))
                 .foregroundStyle(Tema.tinta)
             Text(texto)
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -173,7 +171,7 @@ struct BoasVindasView: View {
             .padding(.vertical, 12)
 
         Text("Menos contas na cabeça.\nMais espaço para viver.")
-            .font(.title2.weight(.bold))
+            .font(Tema.fonte(22, .semibold))
             .foregroundStyle(Tema.tinta)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
@@ -192,16 +190,16 @@ struct BoasVindasView: View {
     private func vantagem(_ simbolo: String, _ titulo: String, _ texto: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: simbolo)
-                .font(.footnote)
+                .font(Tema.fonte(13))
                 .foregroundStyle(Tema.douradoEscuro)
                 .frame(width: 20)
                 .padding(.top, 2)
             VStack(alignment: .leading, spacing: 2) {
                 Text(titulo)
-                    .font(.subheadline.weight(.semibold))
+                    .font(Tema.fonte(15, .semibold))
                     .foregroundStyle(Tema.tinta)
                 Text(texto)
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
             }
         }
@@ -212,7 +210,7 @@ struct BoasVindasView: View {
     @ViewBuilder
     private var entrar: some View {
         Text("Entra na tua conta para continuar.")
-            .font(.subheadline)
+            .font(Tema.fonte(15))
             .foregroundStyle(Tema.tintaSuave)
 
         campo("EMAIL") {
@@ -236,7 +234,7 @@ struct BoasVindasView: View {
         ligacao("Continuar sem conta") { passo = .ritmo }
 
         Text("A entrada é opcional. Podes usar o Lume localmente e configurar a conta mais tarde.")
-            .font(.caption)
+            .font(Tema.fonte(12))
             .foregroundStyle(Tema.tintaSuave)
             .frame(maxWidth: .infinity)
             .multilineTextAlignment(.center)
@@ -245,7 +243,7 @@ struct BoasVindasView: View {
     @ViewBuilder
     private var criarConta: some View {
         Text("Só precisamos do essencial.")
-            .font(.subheadline)
+            .font(Tema.fonte(15))
             .foregroundStyle(Tema.tintaSuave)
 
         campo("NOME") {
@@ -261,7 +259,7 @@ struct BoasVindasView: View {
             SecureField("Cria uma palavra-passe", text: $palavraPasse)
         }
         Text("Usa pelo menos 12 caracteres.")
-            .font(.caption)
+            .font(Tema.fonte(12))
             .foregroundStyle(Tema.tintaSuave)
 
         botao("Criar conta", ativo: !nome.isEmpty && !email.isEmpty) {
@@ -273,7 +271,7 @@ struct BoasVindasView: View {
         ligacao("Prefiro começar sem conta") { passo = .ritmo }
 
         Text("Ao criar conta, aceitas os Termos de utilização e a Política de privacidade.")
-            .font(.caption)
+            .font(Tema.fonte(12))
             .foregroundStyle(Tema.tintaSuave)
             .frame(maxWidth: .infinity)
             .multilineTextAlignment(.center)
@@ -301,7 +299,7 @@ struct BoasVindasView: View {
         Text(recuperacaoPedida
             ? "Pedido enviado. Verifica a tua caixa de entrada."
             : "Se existir uma conta com este email, receberás as instruções na tua caixa de entrada.")
-            .font(.caption)
+            .font(Tema.fonte(12))
             .foregroundStyle(recuperacaoPedida ? Tema.positivo : Tema.tintaSuave)
             .frame(maxWidth: .infinity)
             .multilineTextAlignment(.center)
@@ -314,7 +312,7 @@ struct BoasVindasView: View {
     @ViewBuilder
     private var ritmo: some View {
         Text("Vamos pôr tudo ao teu gosto.")
-            .font(.subheadline)
+            .font(Tema.fonte(15))
             .foregroundStyle(Tema.tintaSuave)
 
         campo("COMO TE PODEMOS CHAMAR?") {
@@ -359,25 +357,24 @@ struct BoasVindasView: View {
     @ViewBuilder
     private var limite: some View {
         Text("Quanto queres gastar por mês?")
-            .font(.title3.weight(.bold))
+            .font(Tema.fonte(17, .semibold))
             .foregroundStyle(Tema.tinta)
         Text("Escolhe um valor para as tuas despesas. Podes ajustá-lo a qualquer momento.")
-            .font(.footnote)
+            .font(Tema.fonte(13))
             .foregroundStyle(Tema.tintaSuave)
 
         VStack(alignment: .leading, spacing: 8) {
             Text("ORÇAMENTO MENSAL")
-                .font(.caption2.weight(.semibold))
-                .kerning(1.2)
+                .font(Tema.fonte(11))
                 .foregroundStyle(Tema.douradoEscuro)
             TextField("1 450,00 €", value: $orcamento, format: moeda)
                 .keyboardType(.decimalPad)
-                .font(.system(size: 34, weight: .bold))
+                .font(Tema.fonte(34, .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Tema.tinta)
             Divider().overlay(Tema.dourado)
             Text("Um ponto de partida, sem pressão.")
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -387,8 +384,7 @@ struct BoasVindasView: View {
         if !categorias.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 Text("COMEÇAMOS COM")
-                    .font(.caption2.weight(.semibold))
-                    .kerning(1.2)
+                    .font(Tema.fonte(11))
                     .foregroundStyle(Tema.tintaSuave)
                 FluxoDeChips(nomes: categorias.map(\.nome))
             }
@@ -429,18 +425,18 @@ struct BoasVindasView: View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Limites de orçamento")
-                    .font(.subheadline.weight(.semibold))
+                    .font(Tema.fonte(15, .semibold))
                     .foregroundStyle(Tema.tinta)
                 Text("Sabe quando uma categoria precisa de atenção.")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text("Resumo semanal")
-                    .font(.subheadline.weight(.semibold))
+                    .font(Tema.fonte(15, .semibold))
                     .foregroundStyle(Tema.tinta)
                 Text("Vê os teus gastos e o que ainda tens disponível.")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
             }
         }
@@ -455,7 +451,7 @@ struct BoasVindasView: View {
         ligacao("Agora não") { passo = .pronto }
 
         Text("Podes alterar esta escolha nas definições.")
-            .font(.caption)
+            .font(Tema.fonte(12))
             .foregroundStyle(Tema.tintaSuave)
             .frame(maxWidth: .infinity)
     }
@@ -473,7 +469,7 @@ struct BoasVindasView: View {
             .padding(.vertical, 8)
 
         Text("O primeiro passo\njá está dado.")
-            .font(.title2.weight(.bold))
+            .font(Tema.fonte(22, .semibold))
             .foregroundStyle(Tema.tinta)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
@@ -490,14 +486,13 @@ struct BoasVindasView: View {
 
         VStack(alignment: .leading, spacing: 4) {
             Text("EXPERIMENTA DIZER")
-                .font(.caption2.weight(.semibold))
-                .kerning(1.2)
+                .font(Tema.fonte(11))
                 .foregroundStyle(Tema.douradoEscuro)
             Text("“Gastei 3,40 € no café.”")
-                .font(.subheadline.weight(.semibold))
+                .font(Tema.fonte(15, .semibold))
                 .foregroundStyle(Tema.tinta)
             Text("O Lume ajuda-te a organizar o resto.")
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
         }
         .padding(.top, 4)
@@ -506,11 +501,11 @@ struct BoasVindasView: View {
     private func linhaDeResumo(_ titulo: String, _ valor: String) -> some View {
         HStack {
             Text(titulo)
-                .font(.footnote)
+                .font(Tema.fonte(13))
                 .foregroundStyle(Tema.tintaSuave)
             Spacer()
             Text(valor)
-                .font(.footnote.weight(.medium))
+                .font(Tema.fonte(13, .medium))
                 .foregroundStyle(Tema.tinta)
         }
     }
@@ -529,7 +524,7 @@ private struct FluxoDeChips: View {
         FlowLayout(spacing: 8) {
             ForEach(nomes, id: \.self) { nome in
                 Text(nome)
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.tinta)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)

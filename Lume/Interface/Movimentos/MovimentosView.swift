@@ -88,12 +88,12 @@ struct MovimentosView: View {
                 Section {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(pesquisa.isEmpty ? "Sem movimentos" : "Nada encontrado")
-                            .font(.headline)
+                            .font(Tema.fonte(17, .semibold))
                             .foregroundStyle(Tema.tinta)
                         Text(pesquisa.isEmpty
                             ? "Regista o primeiro no separador Registar."
                             : "Tenta outra palavra: descrição, loja ou categoria.")
-                            .font(.footnote)
+                            .font(Tema.fonte(13))
                             .foregroundStyle(Tema.tintaSuave)
                     }
                     .padding(.top, 12)
@@ -118,12 +118,12 @@ struct MovimentosView: View {
                     // Dia à esquerda, saldo do dia à direita — como no frame.
                     HStack {
                         Text(titulo(para: grupo.dia))
-                            .font(.footnote)
+                            .font(Tema.fonte(13))
                             .foregroundStyle(Tema.tintaSuave)
                             .textCase(nil)
                         Spacer()
                         Text(saldoDoDia(grupo.transacoes))
-                            .font(.footnote)
+                            .font(Tema.fonte(13))
                             .monospacedDigit()
                             .foregroundStyle(Tema.tintaSuave)
                     }
@@ -138,7 +138,7 @@ struct MovimentosView: View {
                         preview: SharePreview("Movimentos da Lume")
                     ) {
                         Text("Exportar movimentos em CSV")
-                            .font(.footnote.weight(.medium))
+                            .font(Tema.fonte(13, .medium))
                             .foregroundStyle(Tema.douradoEscuro)
                             .frame(maxWidth: .infinity)
                     }
@@ -196,13 +196,13 @@ struct MovimentosView: View {
                     withAnimation(.snappy) { filtro = opcao }
                 } label: {
                     Text(opcao.rawValue)
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(filtro == opcao ? Tema.tinta : Tema.tintaSuave)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
+                        .font(Tema.fonte(13, filtro == opcao ? .semibold : .regular))
+                        .foregroundStyle(filtro == opcao ? Tema.douradoEscuro : Tema.tintaSuave)
+                        .padding(.horizontal, 16)
+                        .frame(height: 38)
                         .background(
                             filtro == opcao ? AnyShapeStyle(Tema.areia) : AnyShapeStyle(.clear),
-                            in: Capsule()
+                            in: RoundedRectangle(cornerRadius: Tema.Raio.chip)
                         )
                 }
                 .accessibilityAddTraits(filtro == opcao ? [.isSelected] : [])
@@ -218,7 +218,7 @@ struct MovimentosView: View {
                 }
             } label: {
                 Image(systemName: "line.3.horizontal.decrease")
-                    .font(.subheadline)
+                    .font(Tema.fonte(15))
                     .foregroundStyle(categoriaFiltrada == nil ? Tema.tintaFosca : Tema.douradoEscuro)
             }
             .accessibilityLabel("Filtrar por categoria")
@@ -233,30 +233,30 @@ struct MovimentosView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(nomeDoMes)
-                    .font(.subheadline.weight(.semibold))
+                    .font(Tema.fonte(15, .semibold))
                     .foregroundStyle(Tema.tinta)
                 Spacer()
                 Text("\(doMes.count) movimentos")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
             }
             HStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Despesas")
-                        .font(.caption)
+                        .font(Tema.fonte(12))
                         .foregroundStyle(Tema.tintaSuave)
                     Text(FormatadorDeMoeda.texto(despesasDoMes))
-                        .font(.headline)
+                        .font(Tema.fonte(17, .semibold))
                         .monospacedDigit()
                         .foregroundStyle(Tema.tinta)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Receitas")
-                        .font(.caption)
+                        .font(Tema.fonte(12))
                         .foregroundStyle(Tema.tintaSuave)
                     Text(FormatadorDeMoeda.texto(receitasDoMes))
-                        .font(.headline)
+                        .font(Tema.fonte(17, .semibold))
                         .monospacedDigit()
                         .foregroundStyle(Tema.tinta)
                 }
@@ -282,10 +282,10 @@ struct MovimentosView: View {
     private var campoDePesquisa: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .font(.footnote)
+                .font(Tema.fonte(13))
                 .foregroundStyle(Tema.tintaSuave)
             TextField("Pesquisar comerciante ou categoria", text: $pesquisa)
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .foregroundStyle(Tema.tinta)
                 .autocorrectionDisabled()
             if !pesquisa.isEmpty {
@@ -293,7 +293,7 @@ struct MovimentosView: View {
                     pesquisa = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.footnote)
+                        .font(Tema.fonte(13))
                         .foregroundStyle(Tema.tintaSuave)
                 }
                 .accessibilityLabel("Limpar pesquisa")

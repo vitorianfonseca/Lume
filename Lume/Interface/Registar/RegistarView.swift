@@ -72,7 +72,7 @@ struct RegistarView: View {
                 }
                 if let mensagem = viewModel.mensagemDeErro {
                     Text(mensagem)
-                        .font(.footnote)
+                        .font(Tema.fonte(13))
                         .foregroundStyle(Tema.tintaSuave)
                 }
             }
@@ -86,7 +86,7 @@ struct RegistarView: View {
         .overlay(alignment: .bottom) {
             if mostrarGuardado {
                 Label(viewModel.resumoDaGravacao, systemImage: "checkmark")
-                    .font(.footnote.weight(.medium))
+                    .font(Tema.fonte(13, .medium))
                     .foregroundStyle(Tema.positivo)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
@@ -168,16 +168,19 @@ struct RegistarView: View {
                 Button {
                     withAnimation(.snappy) { modo = opcao }
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 7) {
                         Image(systemName: opcao.simbolo)
-                            .font(.caption)
+                            .font(Tema.fonte(12))
                         Text(opcao.rawValue)
-                            .font(.footnote.weight(.medium))
+                            .font(Tema.fonte(13, modo == opcao ? .semibold : .regular))
                     }
-                    .foregroundStyle(modo == opcao ? Tema.tinta : Tema.tintaSuave)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(modo == opcao ? AnyShapeStyle(Tema.areia) : AnyShapeStyle(.clear), in: Capsule())
+                    .foregroundStyle(modo == opcao ? Tema.douradoEscuro : Tema.tintaSuave)
+                    .padding(.horizontal, 16)
+                    .frame(height: 38)
+                    .background(
+                        modo == opcao ? AnyShapeStyle(Tema.areia) : AnyShapeStyle(.clear),
+                        in: RoundedRectangle(cornerRadius: Tema.Raio.chip)
+                    )
                 }
                 .accessibilityAddTraits(modo == opcao ? [.isSelected] : [])
             }
@@ -206,11 +209,10 @@ struct RegistarView: View {
     private var disseste: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("DISSESTE")
-                .font(.caption2.weight(.semibold))
-                .kerning(1.2)
+                .font(Tema.fonte(11))
                 .foregroundStyle(Tema.douradoEscuro)
             Text("“\(viewModel.textoDeRegisto)”")
-                .font(.title3.weight(.semibold))
+                .font(Tema.fonte(18, .semibold))
                 .foregroundStyle(Tema.tinta)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -221,10 +223,10 @@ struct RegistarView: View {
     private var entradaDeTexto: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("O que gastaste?")
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
             TextField("Gastei 12,50 no almoço…", text: $viewModel.textoDeRegisto, axis: .vertical)
-                .font(.title3)
+                .font(Tema.fonte(21, .medium))
                 .foregroundStyle(Tema.tinta)
                 .lineLimit(2...4)
                 .focused($campoFocado)
@@ -234,11 +236,11 @@ struct RegistarView: View {
             // Como no frame: hora à esquerda, o "T" dourado à direita.
             HStack {
                 Text("Hoje, \(Date.now.formatted(.dateTime.hour().minute().locale(FormatadorDeMoeda.localidade)))")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
                 Spacer()
                 Image(systemName: "textformat")
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.douradoEscuro)
             }
             .padding(.top, 6)
@@ -250,7 +252,6 @@ struct RegistarView: View {
             RoundedRectangle(cornerRadius: Tema.Raio.cartao)
                 .strokeBorder(Tema.separador, lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.05), radius: 12, y: 5)
     }
 
     private var entradaDeVoz: some View {
@@ -258,7 +259,7 @@ struct RegistarView: View {
             VStack(spacing: 14) {
                 moedaDaMarca(44)
                 Text(gravador.aGravar ? "Estou a ouvir…" : "Toca em começar e fala")
-                    .font(.headline)
+                    .font(Tema.fonte(17, .semibold))
                     .foregroundStyle(Tema.tinta)
 
                 if gravador.aGravar {
@@ -268,7 +269,7 @@ struct RegistarView: View {
                         TimelineView(.periodic(from: inicio, by: 1)) { contextoDeTempo in
                             let segundos = max(0, Int(contextoDeTempo.date.timeIntervalSince(inicio)))
                             Text(String(format: "%02d:%02d", segundos / 60, segundos % 60))
-                                .font(.caption.weight(.medium))
+                                .font(Tema.fonte(12, .medium))
                                 .monospacedDigit()
                                 .foregroundStyle(Tema.tintaSuave)
                         }
@@ -277,7 +278,7 @@ struct RegistarView: View {
 
                 if case .indisponivel(let motivo) = gravador.estado {
                     Text(motivo)
-                        .font(.footnote)
+                        .font(Tema.fonte(13))
                         .foregroundStyle(Tema.tintaSuave)
                         .multilineTextAlignment(.center)
                 }
@@ -290,18 +291,17 @@ struct RegistarView: View {
             if gravador.aGravar, !viewModel.textoDeRegisto.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("TRANSCRIÇÃO EM TEMPO REAL")
-                        .font(.caption2.weight(.semibold))
-                        .kerning(1.2)
+                        .font(Tema.fonte(11))
                         .foregroundStyle(Tema.tintaSuave)
                     Text("“\(viewModel.textoDeRegisto)”")
-                        .font(.title3.weight(.semibold))
+                        .font(Tema.fonte(18, .semibold))
                         .foregroundStyle(Tema.tinta)
 
                     // O valor e a categoria percebidos ao vivo, como no frame.
                     if let direto = propostaEmDireto, direto.valor > 0 {
                         HStack(spacing: 10) {
                             Text(FormatadorDeMoeda.texto(direto.valor))
-                                .font(.caption.weight(.semibold))
+                                .font(Tema.fonte(12, .semibold))
                                 .monospacedDigit()
                                 .foregroundStyle(Tema.douradoEscuro)
                                 .padding(.horizontal, 10)
@@ -309,7 +309,7 @@ struct RegistarView: View {
                                 .background(Tema.areia, in: Capsule())
                             if let categoria = direto.nomeDaCategoria {
                                 Text(categoria)
-                                    .font(.caption)
+                                    .font(Tema.fonte(12))
                                     .foregroundStyle(Tema.tintaSuave)
                             }
                         }
@@ -331,7 +331,7 @@ struct RegistarView: View {
             }
 
             Text("A despesa só é guardada depois de confirmares.")
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
                 .frame(maxWidth: .infinity)
         }
@@ -351,7 +351,7 @@ struct RegistarView: View {
                     .photosPicker(isPresented: $mostrarFototeca, selection: $fotoDeTalao, matching: .images)
 
                 Text("A fotografia fica associada ao movimento.")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
                     .frame(maxWidth: .infinity)
             }
@@ -362,11 +362,10 @@ struct RegistarView: View {
     private var talaoDeExemplo: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("PINGO DOCE")
-                .font(.caption.weight(.bold))
-                .kerning(1)
+                .font(Tema.fonte(12, .semibold))
                 .foregroundStyle(Tema.tinta)
             Text("Lisboa · 24/09/2026 · 11:42")
-                .font(.caption2)
+                .font(Tema.fonte(11))
                 .foregroundStyle(Tema.tintaSuave)
             Divider().overlay(Tema.separador)
             linhaDeTalao("Pão alentejano", "1,89 €")
@@ -377,11 +376,11 @@ struct RegistarView: View {
             Divider().overlay(Tema.separador)
             HStack {
                 Text("TOTAL")
-                    .font(.caption.weight(.bold))
+                    .font(Tema.fonte(12, .semibold))
                     .foregroundStyle(Tema.tinta)
                 Spacer()
                 Text("28,64 €")
-                    .font(.headline)
+                    .font(Tema.fonte(17, .semibold))
                     .monospacedDigit()
                     .foregroundStyle(Tema.tinta)
             }
@@ -394,11 +393,11 @@ struct RegistarView: View {
     private func linhaDeTalao(_ nome: String, _ valor: String) -> some View {
         HStack {
             Text(nome)
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
             Spacer()
             Text(valor)
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .monospacedDigit()
                 .foregroundStyle(Tema.tinta)
         }
@@ -440,15 +439,15 @@ struct RegistarView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Depois desta despesa")
-                    .font(.subheadline.weight(.semibold))
+                    .font(Tema.fonte(15, .semibold))
                     .foregroundStyle(Tema.tinta)
                 Text("\(categoria.nome): \(FormatadorDeMoeda.texto(depois)) de \(FormatadorDeMoeda.textoEmEurosInteiros(orcamento)) €")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
                 Text(restante >= .zero
                     ? "Ficam \(FormatadorDeMoeda.texto(restante)) disponíveis."
                     : "Passas o limite em \(FormatadorDeMoeda.texto(-restante)).")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -467,7 +466,7 @@ struct RegistarView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     Label(tituloDoReconhecimento, systemImage: "checkmark")
-                        .font(.footnote.weight(.medium))
+                        .font(Tema.fonte(13, .medium))
                         .foregroundStyle(Tema.positivo)
                     Spacer()
                 }
@@ -475,10 +474,10 @@ struct RegistarView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         TextField("Descrição", text: ligacaoProposta.descricao)
-                            .font(.headline)
+                            .font(Tema.fonte(17, .semibold))
                             .foregroundStyle(Tema.tinta)
                         Image(systemName: "creditcard")
-                            .font(.footnote)
+                            .font(Tema.fonte(13))
                             .foregroundStyle(Tema.douradoEscuro)
                     }
 
@@ -488,7 +487,7 @@ struct RegistarView: View {
                         format: .currency(code: "EUR").locale(FormatadorDeMoeda.localidade)
                     )
                     .keyboardType(.decimalPad)
-                    .font(.system(size: 34, weight: .bold))
+                    .font(Tema.fonte(34, .semibold))
                     .monospacedDigit()
                     .foregroundStyle(Tema.tinta)
 
@@ -529,7 +528,6 @@ struct RegistarView: View {
                     RoundedRectangle(cornerRadius: Tema.Raio.cartao)
                         .strokeBorder(Tema.separador, lineWidth: 1)
                 )
-                .shadow(color: .black.opacity(0.05), radius: 12, y: 5)
 
                 if aReverVoz {
                     depoisDaDespesa(atual)
@@ -543,7 +541,7 @@ struct RegistarView: View {
                         proposta = nil
                         viewModel.proposta = nil
                     }
-                    .font(.footnote.weight(.medium))
+                    .font(Tema.fonte(13, .medium))
                     .foregroundStyle(Tema.douradoEscuro)
                     .frame(maxWidth: .infinity)
                 } else {
@@ -552,7 +550,7 @@ struct RegistarView: View {
                             ? "A fotografia fica associada ao movimento."
                             : "Podes rever e corrigir tudo antes de guardar."
                     )
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
                     .frame(maxWidth: .infinity)
                 }
@@ -576,10 +574,10 @@ struct RegistarView: View {
     ) -> some View {
         HStack(spacing: 10) {
             Image(systemName: simbolo)
-                .font(.footnote)
+                .font(Tema.fonte(13))
                 .foregroundStyle(Tema.tintaSuave)
             Text(titulo)
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .foregroundStyle(Tema.tintaSuave)
             Spacer()
             controlo()
@@ -589,10 +587,9 @@ struct RegistarView: View {
     private func botaoDeAcao(_ titulo: String, acao: @escaping () -> Void) -> some View {
         Button(action: acao) {
             Text(titulo)
-                .font(.headline)
+                .font(Tema.fonte(15, .semibold))
                 .foregroundStyle(Color(hex: "302B24"))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
+                .frame(maxWidth: .infinity, minHeight: 52)
                 .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
         }
     }

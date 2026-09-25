@@ -17,15 +17,15 @@ struct MovimentoView: View {
                 VStack(spacing: 12) {
                     AvatarDeIniciais(texto: titulo, lado: 56)
                     Text(titulo)
-                        .font(.title3.weight(.bold))
+                        .font(Tema.fonte(17, .semibold))
                         .foregroundStyle(Tema.tinta)
                     Text(valorFormatado)
-                        .font(.system(size: 34, weight: .bold))
+                        .font(Tema.fonte(34, .semibold))
                         .monospacedDigit()
                         .foregroundStyle(transacao.tipo == .receita ? Tema.positivo : Tema.tinta)
                     if let categoria = transacao.categoria {
                         Text(categoria.nome)
-                            .font(.caption.weight(.medium))
+                            .font(Tema.fonte(12, .medium))
                             .foregroundStyle(Tema.douradoEscuro)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 5)
@@ -50,11 +50,10 @@ struct MovimentoView: View {
                 if let nota = transacao.nota, !nota.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("NOTA")
-                            .font(.caption2.weight(.semibold))
-                            .kerning(1.2)
+                            .font(Tema.fonte(11))
                             .foregroundStyle(Tema.tintaSuave)
                         Text(nota)
-                            .font(.subheadline)
+                            .font(Tema.fonte(15))
                             .foregroundStyle(Tema.tinta)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -66,14 +65,14 @@ struct MovimentoView: View {
                     } label: {
                         HStack {
                             Image(systemName: "doc.text.viewfinder")
-                                .font(.footnote)
+                                .font(Tema.fonte(13))
                                 .foregroundStyle(Tema.douradoEscuro)
                             Text("Ver talão original")
-                                .font(.subheadline)
+                                .font(Tema.fonte(15))
                                 .foregroundStyle(Tema.tinta)
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(.caption)
+                                .font(Tema.fonte(12))
                                 .foregroundStyle(Tema.tintaSuave)
                         }
                         .padding(.vertical, 12)
@@ -81,17 +80,16 @@ struct MovimentoView: View {
                 }
 
                 Button("Editar movimento") { aoEditar() }
-                    .font(.footnote.weight(.medium))
+                    .font(Tema.fonte(13, .medium))
                     .foregroundStyle(Tema.douradoEscuro)
 
                 Button {
                     aoFechar()
                 } label: {
                     Text("Voltar aos movimentos")
-                        .font(.headline)
+                        .font(Tema.fonte(15, .semibold))
                         .foregroundStyle(Color(hex: "302B24"))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .frame(maxWidth: .infinity, minHeight: 52)
                         .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
                 }
             }
@@ -149,14 +147,14 @@ struct MovimentoView: View {
     private func linha(_ titulo: String, simbolo: String, valor: String) -> some View {
         HStack(spacing: 10) {
             Image(systemName: simbolo)
-                .font(.footnote)
+                .font(Tema.fonte(13))
                 .foregroundStyle(Tema.tintaSuave)
             Text(titulo)
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .foregroundStyle(Tema.tintaSuave)
             Spacer()
             Text(valor)
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .foregroundStyle(Tema.tinta)
         }
     }

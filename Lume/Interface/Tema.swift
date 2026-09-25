@@ -15,25 +15,30 @@ nonisolated enum Tema {
     /// Dourado claro dos botões de ação (texto escuro por cima).
     static let douradoBotao = Color(claro: 0xE8CD91, escuro: 0xC9A45A)
     static let tinta = Color(claro: 0x302B24, escuro: 0xF2F0EB)
-    static let tintaSuave = Color(claro: 0x7A756C, escuro: 0xA9A49A)
+    /// "muted" no quadro de identidade.
+    static let tintaSuave = Color(claro: 0x7B7367, escuro: 0xA9A49A)
     /// Preto fosco quente para ícones e setas — nunca preto puro.
     static let tintaFosca = Color(claro: 0x38342E, escuro: 0xE8E4DC)
     static let dourado = Color(claro: 0xC9A45A, escuro: 0xC9A45A)
     static let douradoEscuro = Color(claro: 0x8E641F, escuro: 0xD4AD5F)
     /// Verde discreto para receitas e confirmações — "positive" na identidade.
     static let positivo = Color(claro: 0x456B56, escuro: 0x8AC69C)
-    /// Linhas finas: tinta a 15% — o sistema visual pede 12%, mas sobre
-    /// o fundo branco puro é preciso um ponto mais para se ler.
-    static var separador: Color { tinta.opacity(0.15) }
+    /// Linhas e contornos — "border" #E7E0D5 no quadro de identidade.
+    static let separador = Color(claro: 0xE7E0D5, escuro: 0x35332C)
 
-    /// Margem horizontal dos ecrãs — 26 pt, a grelha do Figma (6,67 % de 390).
-    static let margemDoEcra: CGFloat = 26
+    /// Margem horizontal dos ecrãs — 24 pt, medida nos frames (342 em 390).
+    static let margemDoEcra: CGFloat = 24
 
-    /// Cantos do sistema: cartões 22 · botões e campos 25 · chips 14.
+    /// Cantos medidos nos frames: cartões 24 · botões e campos 16 · chips 13.
     enum Raio {
-        static let cartao: CGFloat = 22
-        static let campo: CGFloat = 25
-        static let chip: CGFloat = 14
+        static let cartao: CGFloat = 24
+        static let campo: CGFloat = 16
+        static let chip: CGFloat = 13
+    }
+
+    /// A fonte da identidade: Instrument Sans, com recurso à SF se faltar.
+    static func fonte(_ tamanho: CGFloat, _ peso: Font.Weight = .regular) -> Font {
+        .custom("Instrument Sans", size: tamanho).weight(peso)
     }
 
     /// Dourado das barras de progresso: rampa limpa escuro→claro,

@@ -113,12 +113,11 @@ struct HojeView: View {
             if case .calculado(let dia) = resultado {
                 HStack {
                     Text(mesDoCartao)
-                        .font(.caption2.weight(.semibold))
-                        .kerning(1.2)
+                        .font(Tema.fonte(11))
                         .foregroundStyle(Tema.douradoEscuro)
                     Spacer()
                     Text("Este mês")
-                        .font(.caption.weight(.medium))
+                        .font(Tema.fonte(12, .medium))
                         .foregroundStyle(Tema.tinta)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
@@ -127,12 +126,12 @@ struct HojeView: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(FormatadorDeMoeda.texto(gastoDoMes))
-                        .font(.system(size: 34, weight: .bold))
+                        .font(Tema.fonte(34, .semibold))
                         .monospacedDigit()
                         .foregroundStyle(Tema.tinta)
                         .contentTransition(.numericText())
                     Text("gastos de um orçamento de \(FormatadorDeMoeda.texto(rendimentoDoMes))")
-                        .font(.footnote)
+                        .font(Tema.fonte(13))
                         .foregroundStyle(Tema.tintaSuave)
                 }
 
@@ -142,20 +141,20 @@ struct HojeView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 0) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Ainda disponíveis")
-                            .font(.caption)
+                            .font(Tema.fonte(12))
                             .foregroundStyle(Tema.tintaSuave)
                         Text(FormatadorDeMoeda.texto(dia.disponivelDoMes))
-                            .font(.title3.weight(.semibold))
+                            .font(Tema.fonte(18, .semibold))
                             .monospacedDigit()
                             .foregroundStyle(Tema.tinta)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Por dia · \(dia.diasRestantes) \(dia.diasRestantes == 1 ? "dia" : "dias")")
-                            .font(.caption)
+                            .font(Tema.fonte(12))
                             .foregroundStyle(Tema.tintaSuave)
                         Text(FormatadorDeMoeda.texto(porDia(de: dia)))
-                            .font(.title3.weight(.semibold))
+                            .font(Tema.fonte(18, .semibold))
                             .monospacedDigit()
                             .foregroundStyle(Tema.tinta)
                     }
@@ -174,7 +173,6 @@ struct HojeView: View {
             RoundedRectangle(cornerRadius: Tema.Raio.cartao)
                 .strokeBorder(Tema.separador, lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.06), radius: 14, y: 6)
     }
 
     private var fracaoDoOrcamento: Double {
@@ -229,10 +227,10 @@ struct HojeView: View {
         HStack(alignment: .bottom, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Ritmo do mês")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
                 Text(dentroDoLimite ? "Dentro do limite" : "Acima do ritmo")
-                    .font(.footnote.weight(.medium))
+                    .font(Tema.fonte(13, .medium))
                     .foregroundStyle(dentroDoLimite ? Tema.positivo : Tema.douradoEscuro)
             }
             .fixedSize()
@@ -282,10 +280,10 @@ struct HojeView: View {
         Button(action: acao) {
             HStack(spacing: 8) {
                 Image(systemName: simbolo)
-                    .font(.subheadline)
+                    .font(Tema.fonte(15))
                     .foregroundStyle(Tema.douradoEscuro)
                 Text(titulo)
-                    .font(.subheadline.weight(.medium))
+                    .font(Tema.fonte(15, .medium))
                     .foregroundStyle(Tema.tinta)
             }
             .frame(maxWidth: .infinity)
@@ -324,11 +322,11 @@ struct HojeView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .firstTextBaseline) {
                             Text(linha.categoria.nome)
-                                .font(.subheadline)
+                                .font(Tema.fonte(15))
                                 .foregroundStyle(Tema.tinta)
                             Spacer()
                             Text("\(FormatadorDeMoeda.textoEmEurosInteiros(linha.gasto)) / \(FormatadorDeMoeda.textoEmEurosInteiros(linha.orcamento)) €")
-                                .font(.footnote)
+                                .font(Tema.fonte(13))
                                 .monospacedDigit()
                                 .foregroundStyle(Tema.tintaSuave)
                         }
@@ -364,7 +362,7 @@ struct HojeView: View {
 
             if visiveis.isEmpty {
                 Text("Ainda sem movimentos. Regista o primeiro no separador Registar.")
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.tintaSuave)
                     .padding(.top, 4)
             } else {

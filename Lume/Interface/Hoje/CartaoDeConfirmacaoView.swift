@@ -42,7 +42,7 @@ struct CartaoDeConfirmacaoView: View {
             botaoConfirmar
             if let aoEliminar {
                 Button("Eliminar movimento", role: .destructive) { aoEliminar() }
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .frame(maxWidth: .infinity)
             }
         }
@@ -58,12 +58,11 @@ struct CartaoDeConfirmacaoView: View {
     private var cabecalho: some View {
         ZStack {
             Text(titulo)
-                .font(.caption2)
-                .kerning(1.5)
+                .font(Tema.fonte(11))
                 .foregroundStyle(Tema.tintaSuave)
             HStack {
                 Button("Cancelar") { aoCancelar() }
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.tintaSuave)
                 Spacer()
             }
@@ -74,10 +73,10 @@ struct CartaoDeConfirmacaoView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 TextField("Descrição", text: $proposta.descricao)
-                    .font(.headline)
+                    .font(Tema.fonte(17, .semibold))
                     .foregroundStyle(Tema.tinta)
                 Image(systemName: "creditcard")
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.douradoEscuro)
             }
 
@@ -87,12 +86,12 @@ struct CartaoDeConfirmacaoView: View {
                 format: .currency(code: "EUR").locale(FormatadorDeMoeda.localidade)
             )
             .keyboardType(.decimalPad)
-            .font(.system(size: 34, weight: .bold))
+            .font(Tema.fonte(34, .semibold))
             .monospacedDigit()
             .foregroundStyle(Tema.tinta)
 
             TextField("Loja (opcional)", text: lojaBinding)
-                .font(.footnote)
+                .font(Tema.fonte(13))
                 .foregroundStyle(Tema.tintaSuave)
 
             Divider().overlay(Tema.separador)
@@ -142,10 +141,10 @@ struct CartaoDeConfirmacaoView: View {
     ) -> some View {
         HStack(spacing: 10) {
             Image(systemName: simbolo)
-                .font(.footnote)
+                .font(Tema.fonte(13))
                 .foregroundStyle(Tema.tintaSuave)
             Text(titulo)
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .foregroundStyle(Tema.tintaSuave)
             Spacer()
             controlo()
@@ -158,10 +157,9 @@ struct CartaoDeConfirmacaoView: View {
             aoConfirmar(proposta)
         } label: {
             Text(textoDeConfirmacao)
-                .font(.headline)
+                .font(Tema.fonte(15, .semibold))
                 .foregroundStyle(Color(hex: "302B24"))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
+                .frame(maxWidth: .infinity, minHeight: 52)
                 .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
         }
     }

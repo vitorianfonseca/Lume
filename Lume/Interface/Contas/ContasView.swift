@@ -78,7 +78,7 @@ struct ContasView: View {
             let resumo = resumoDoMes(de: conta)
             VStack(alignment: .leading, spacing: 4) {
                 Text("Este mês — \(conta.nome)")
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.tintaSuave)
 
                 VStack(spacing: 0) {
@@ -90,7 +90,7 @@ struct ContasView: View {
                 }
 
                 Text("O extrato completo, com pesquisa, vive no separador Movimentos.")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
                     .padding(.top, 10)
             }
@@ -102,11 +102,11 @@ struct ContasView: View {
     private func linhaDeResumo(_ titulo: String, _ valor: String, cor: Color) -> some View {
         HStack {
             Text(titulo)
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .foregroundStyle(Tema.tinta)
             Spacer()
             Text(valor)
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .monospacedDigit()
                 .foregroundStyle(cor)
         }
@@ -167,12 +167,12 @@ struct CartaoDeConta: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 Text(conta.nome.uppercased())
-                    .font(.footnote.weight(.semibold))
+                    .font(Tema.fonte(13, .semibold))
                     .kerning(2)
                     .gravado()
                 Spacer()
                 Image(systemName: "wave.3.right")
-                    .font(.body.weight(.medium))
+                    .font(Tema.fonte(16, .medium))
                     .opacity(0.85)
             }
 
@@ -183,24 +183,21 @@ struct CartaoDeConta: View {
 
             Text("••••  ••••  ••••  \(digitos)")
                 .font(.system(.callout, design: .monospaced).weight(.medium))
-                .kerning(1)
                 .gravado()
 
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("SALDO")
                         .font(.system(size: 9, weight: .semibold))
-                        .kerning(1.5)
                         .opacity(0.6)
                     Text(FormatadorDeMoeda.texto(conta.saldoAtual))
-                        .font(.title3.weight(.semibold))
+                        .font(Tema.fonte(18, .semibold))
                         .monospacedDigit()
                         .gravado()
                 }
                 Spacer()
                 Text(conta.tipo.nome.uppercased())
                     .font(.system(size: 10, weight: .semibold))
-                    .kerning(1.5)
                     .opacity(0.7)
             }
             .padding(.top, 12)

@@ -19,7 +19,7 @@ struct RegistoRapidoView: View {
             HStack(spacing: 10) {
                 TextField("Gastei…", text: $viewModel.textoDeRegisto)
                     .textFieldStyle(.plain)
-                    .font(.body)
+                    .font(Tema.fonte(16))
                     .submitLabel(.done)
                     .onSubmit { interpretar() }
                     .accessibilityLabel("Registar movimento por texto")
@@ -45,7 +45,7 @@ struct RegistoRapidoView: View {
 
             if let mensagem = mensagemVisivel {
                 Text(mensagem)
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.tintaSuave)
                     .padding(.horizontal, 4)
             }
@@ -75,7 +75,7 @@ struct RegistoRapidoView: View {
     private var botaoDeTalao: some View {
         PhotosPicker(selection: $fotoDeTalao, matching: .images) {
             Image(systemName: "doc.viewfinder")
-                .font(.subheadline.weight(.semibold))
+                .font(Tema.fonte(15, .semibold))
                 .foregroundStyle(Tema.tintaSuave)
                 .frame(width: 30, height: 30)
         }
@@ -93,7 +93,7 @@ struct RegistoRapidoView: View {
             }
         } label: {
             Image(systemName: gravador.aGravar ? "waveform" : "mic")
-                .font(.subheadline.weight(.semibold))
+                .font(Tema.fonte(15, .semibold))
                 .foregroundStyle(gravador.aGravar ? Tema.dourado : Tema.tintaSuave)
                 .frame(width: 30, height: 30)
                 .contentTransition(.symbolEffect(.replace))
@@ -108,7 +108,7 @@ struct RegistoRapidoView: View {
         // Sempre dourado — esbatido enquanto não há texto.
         Button(action: interpretar) {
             Image(systemName: "arrow.up")
-                .font(.subheadline.weight(.semibold))
+                .font(Tema.fonte(15, .semibold))
                 // Preto fosco fixo: sobre o dourado, o contraste
                 // tem de se manter também no modo escuro.
                 .foregroundStyle(Color(hex: "38342E"))

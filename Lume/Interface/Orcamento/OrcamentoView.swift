@@ -66,13 +66,13 @@ struct OrcamentoView: View {
                     withAnimation(.snappy) { segmento = opcao }
                 } label: {
                     Text(opcao.rawValue)
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(segmento == opcao ? Tema.tinta : Tema.tintaSuave)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
+                        .font(Tema.fonte(13, segmento == opcao ? .semibold : .regular))
+                        .foregroundStyle(segmento == opcao ? Tema.douradoEscuro : Tema.tintaSuave)
+                        .padding(.horizontal, 16)
+                        .frame(height: 38)
                         .background(
                             segmento == opcao ? AnyShapeStyle(Tema.areia) : AnyShapeStyle(.clear),
-                            in: Capsule()
+                            in: RoundedRectangle(cornerRadius: Tema.Raio.chip)
                         )
                 }
                 .accessibilityAddTraits(segmento == opcao ? [.isSelected] : [])
@@ -104,31 +104,31 @@ struct OrcamentoView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(Date.now.formatted(.dateTime.month(.wide).locale(FormatadorDeMoeda.localidade)).capitalized)
-                    .font(.subheadline.weight(.semibold))
+                    .font(Tema.fonte(15, .semibold))
                     .foregroundStyle(Tema.tinta)
                 Spacer()
                 Button("Editar limites") { mostrarEditarLimites = true }
-                    .font(.footnote.weight(.medium))
+                    .font(Tema.fonte(13, .medium))
                     .foregroundStyle(Tema.douradoEscuro)
             }
 
             Text(FormatadorDeMoeda.texto(rendimentoDoMes))
-                .font(.system(size: 34, weight: .bold))
+                .font(Tema.fonte(34, .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Tema.tinta)
 
             Text(resumoDeUtilizacao)
-                .font(.footnote)
+                .font(Tema.fonte(13))
                 .foregroundStyle(Tema.tintaSuave)
         }
 
         if comOrcamento.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Sem limites definidos")
-                    .font(.headline)
+                    .font(Tema.fonte(17, .semibold))
                     .foregroundStyle(Tema.tinta)
                 Text("Toca em \"Editar limites\" para distribuir o orçamento pelas categorias.")
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.tintaSuave)
             }
             .padding(.top, 8)
@@ -174,15 +174,14 @@ struct OrcamentoView: View {
     private var objetivos: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("JÁ RESERVASTE")
-                .font(.caption2.weight(.semibold))
-                .kerning(1.2)
+                .font(Tema.fonte(11))
                 .foregroundStyle(Tema.douradoEscuro)
             Text(FormatadorDeMoeda.texto(totalReservado))
-                .font(.system(size: 34, weight: .bold))
+                .font(Tema.fonte(34, .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Tema.tinta)
             Text("reservado para os teus planos · continua assim")
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -200,10 +199,9 @@ struct OrcamentoView: View {
             mostrarNovoObjetivo = true
         } label: {
             Text("Criar novo objetivo")
-                .font(.headline)
+                .font(Tema.fonte(15, .semibold))
                 .foregroundStyle(Color(hex: "302B24"))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
+                .frame(maxWidth: .infinity, minHeight: 52)
                 .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
         }
         .padding(.top, 4)
@@ -220,28 +218,28 @@ struct OrcamentoView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(meta.nome)
-                        .font(.subheadline.weight(.semibold))
+                        .font(Tema.fonte(15, .semibold))
                         .foregroundStyle(Tema.tinta)
                     if let descricao = meta.descricao, !descricao.isEmpty {
                         Text(descricao)
-                            .font(.caption)
+                            .font(Tema.fonte(12))
                             .foregroundStyle(Tema.tintaSuave)
                     }
                 }
                 Spacer()
                 Image(systemName: meta.simbolo)
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.douradoEscuro)
             }
 
             HStack(alignment: .firstTextBaseline) {
                 Text(FormatadorDeMoeda.texto(meta.valorPoupado))
-                    .font(.title3.weight(.bold))
+                    .font(Tema.fonte(17, .semibold))
                     .monospacedDigit()
                     .foregroundStyle(Tema.tinta)
                 Spacer()
                 Text("de \(FormatadorDeMoeda.textoEmEurosInteiros(meta.valorAlvo)) €")
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .monospacedDigit()
                     .foregroundStyle(Tema.tintaSuave)
             }
@@ -250,11 +248,11 @@ struct OrcamentoView: View {
 
             HStack {
                 Text("\(Int((fracao(de: meta) * 100).rounded()))% concluído")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
                 Spacer()
                 Button("Reforçar objetivo →") { metaAReforcar = meta }
-                    .font(.caption.weight(.medium))
+                    .font(Tema.fonte(12, .medium))
                     .foregroundStyle(Tema.douradoEscuro)
             }
         }
@@ -275,11 +273,11 @@ private struct LinhaDeOrcamento: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Text(categoria.nome)
-                    .font(.subheadline)
+                    .font(Tema.fonte(15))
                     .foregroundStyle(Tema.tinta)
                 Spacer()
                 Text("\(FormatadorDeMoeda.textoEmEurosInteiros(gasto)) / \(FormatadorDeMoeda.textoEmEurosInteiros(orcamento)) €")
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .monospacedDigit()
                     .foregroundStyle(Tema.tintaSuave)
             }
@@ -287,7 +285,7 @@ private struct LinhaDeOrcamento: View {
             BarraDeProgresso(fracao: fracao, dourada: true, altura: 4)
 
             Text(legendaDisponivel)
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
         }
         .accessibilityElement(children: .combine)
@@ -362,7 +360,7 @@ private struct EditarLimitesView: View {
                         .disabled(deslocacaoDeMes <= -1)
                     Spacer()
                     Text(deslocacaoDeMes == 0 ? "Este mês" : dataSelecionada.formatted(.dateTime.month(.wide).locale(FormatadorDeMoeda.localidade)).capitalized)
-                        .font(.subheadline.weight(.medium))
+                        .font(Tema.fonte(15, .medium))
                         .foregroundStyle(Tema.tinta)
                     Spacer()
                     Button { deslocacaoDeMes += 1 } label: { Image(systemName: "chevron.right") }
@@ -389,15 +387,14 @@ private struct EditarLimitesView: View {
                     dismiss()
                 } label: {
                     Text("Guardar limites")
-                        .font(.headline)
+                        .font(Tema.fonte(15, .semibold))
                         .foregroundStyle(Color(hex: "302B24"))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .frame(maxWidth: .infinity, minHeight: 52)
                         .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
                 }
 
                 Text("Os movimentos existentes mantêm-se no teu histórico.")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
                     .frame(maxWidth: .infinity)
             }
@@ -415,29 +412,28 @@ private struct EditarLimitesView: View {
         @Bindable var selecionadas = selecionadas
         return VStack(alignment: .leading, spacing: 8) {
             Text("ORÇAMENTO MENSAL")
-                .font(.caption2.weight(.semibold))
-                .kerning(1.2)
+                .font(Tema.fonte(11))
                 .foregroundStyle(Tema.douradoEscuro)
             TextField("0 €", value: $selecionadas.rendimentoEsperado, format: moeda)
                 .keyboardType(.decimalPad)
-                .font(.system(size: 34, weight: .bold))
+                .font(Tema.fonte(34, .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Tema.tinta)
             HStack {
                 Text("Poupança planeada")
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.tintaSuave)
                 Spacer()
                 TextField("0 €", value: $selecionadas.poupancaPlaneada, format: moeda)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .monospacedDigit()
                     .foregroundStyle(Tema.tinta)
                     .frame(width: 110)
             }
             Text("Distribui o valor pelas tuas categorias.")
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -449,7 +445,7 @@ private struct EditarLimitesView: View {
         @Bindable var categoria = categoria
         return HStack {
             Text(categoria.nome)
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .foregroundStyle(Tema.tinta)
             Spacer()
             TextField(
@@ -462,7 +458,7 @@ private struct EditarLimitesView: View {
             )
             .keyboardType(.decimalPad)
             .multilineTextAlignment(.trailing)
-            .font(.subheadline)
+            .font(Tema.fonte(15))
             .monospacedDigit()
             .foregroundStyle(Tema.tinta)
             .frame(width: 110)
@@ -512,15 +508,15 @@ private struct FormularioDeObjetivo: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Label {
                             Text("O próximo passo começa aqui.")
-                                .font(.subheadline.weight(.semibold))
+                                .font(Tema.fonte(15, .semibold))
                                 .foregroundStyle(Tema.tinta)
                         } icon: {
                             Image(systemName: "target")
-                                .font(.footnote)
+                                .font(Tema.fonte(13))
                                 .foregroundStyle(Tema.douradoEscuro)
                         }
                         Text("Define um valor e uma data. O Lume ajuda-te a acompanhar o caminho.")
-                            .font(.caption)
+                            .font(Tema.fonte(12))
                             .foregroundStyle(Tema.tintaSuave)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -549,7 +545,7 @@ private struct FormularioDeObjetivo: View {
                                 .environment(\.locale, FormatadorDeMoeda.localidade)
                         } else {
                             Text("Sem data definida")
-                                .font(.subheadline)
+                                .font(Tema.fonte(15))
                                 .foregroundStyle(Tema.tintaSuave)
                         }
                         Spacer()
@@ -564,16 +560,15 @@ private struct FormularioDeObjetivo: View {
                     guardar()
                 } label: {
                     Text(meta == nil ? "Criar objetivo" : "Guardar alterações")
-                        .font(.headline)
+                        .font(Tema.fonte(15, .semibold))
                         .foregroundStyle(Color(hex: "302B24"))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .frame(maxWidth: .infinity, minHeight: 52)
                         .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
                 }
                 .disabled(nome.trimmingCharacters(in: .whitespaces).isEmpty || valorAlvo <= .zero)
 
                 Text("Podes alterar o valor ou a data a qualquer momento.")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
                     .frame(maxWidth: .infinity)
 
@@ -583,7 +578,7 @@ private struct FormularioDeObjetivo: View {
                         try? contexto.save()
                         dismiss()
                     }
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .frame(maxWidth: .infinity)
                 }
             }
@@ -598,11 +593,10 @@ private struct FormularioDeObjetivo: View {
     private func campo(_ legenda: String, @ViewBuilder conteudo: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(legenda)
-                .font(.caption2.weight(.semibold))
-                .kerning(1.2)
+                .font(Tema.fonte(11))
                 .foregroundStyle(Tema.tintaSuave)
             conteudo()
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .foregroundStyle(Tema.tinta)
             Divider().overlay(Tema.separador)
         }
@@ -646,17 +640,16 @@ private struct ReforcoDeObjetivo: View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("REFORÇAR OBJETIVO")
-                    .font(.caption2.weight(.semibold))
-                    .kerning(1.2)
+                    .font(Tema.fonte(11))
                     .foregroundStyle(Tema.douradoEscuro)
                 Text(meta.nome)
-                    .font(.title3.weight(.bold))
+                    .font(Tema.fonte(17, .semibold))
                     .foregroundStyle(Tema.tinta)
             }
 
             TextField("0,00 €", value: $valor, format: moeda)
                 .keyboardType(.decimalPad)
-                .font(.system(size: 34, weight: .bold))
+                .font(Tema.fonte(34, .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Tema.tinta)
 
@@ -666,10 +659,9 @@ private struct ReforcoDeObjetivo: View {
                 dismiss()
             } label: {
                 Text("Adicionar ao objetivo")
-                    .font(.headline)
+                    .font(Tema.fonte(15, .semibold))
                     .foregroundStyle(Color(hex: "302B24"))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                    .frame(maxWidth: .infinity, minHeight: 52)
                     .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
             }
             .disabled(valor <= .zero)

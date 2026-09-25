@@ -13,11 +13,10 @@ struct CabecalhoDeEcra: View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(legenda)
-                    .font(.caption2.weight(.semibold))
-                    .kerning(1.2)
+                    .font(Tema.fonte(11))
                     .foregroundStyle(Tema.tintaSuave)
                 Text(titulo)
-                    .font(.title.weight(.bold))
+                    .font(Tema.fonte(27, .semibold))
                     .foregroundStyle(Tema.tinta)
             }
             Spacer()
@@ -39,12 +38,12 @@ struct TituloDeSeccao: View {
     var body: some View {
         HStack {
             Text(titulo)
-                .font(.title3.weight(.bold))
+                .font(Tema.fonte(17, .semibold))
                 .foregroundStyle(Tema.tinta)
             Spacer()
             if let acao, let aoTocar {
                 Button(acao) { aoTocar() }
-                    .font(.footnote.weight(.medium))
+                    .font(Tema.fonte(13, .medium))
                     .foregroundStyle(Tema.douradoEscuro)
             }
         }
@@ -68,11 +67,11 @@ struct LinhaDeTransacao: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(titulo)
-                    .font(.subheadline.weight(.medium))
+                    .font(Tema.fonte(15, .medium))
                     .foregroundStyle(Tema.tinta)
                 if let detalhe {
                     Text(detalhe)
-                        .font(.footnote)
+                        .font(Tema.fonte(13))
                         .foregroundStyle(Tema.tintaSuave)
                 }
             }
@@ -80,7 +79,7 @@ struct LinhaDeTransacao: View {
             Spacer()
 
             Text(valorFormatado)
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .monospacedDigit()
                 .foregroundStyle(transacao.tipo == .receita ? Tema.positivo : Tema.tinta)
         }
@@ -158,17 +157,17 @@ struct LinhaDeRecorrente: View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(recorrente.nome)
-                    .font(.subheadline)
+                    .font(Tema.fonte(15))
                     .foregroundStyle(Tema.tinta)
                 Text(data.formatted(.dateTime.weekday(.wide).day().month(.abbreviated).locale(FormatadorDeMoeda.localidade)))
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.tintaSuave)
             }
 
             Spacer()
 
             Text(FormatadorDeMoeda.texto(recorrente.valor))
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .monospacedDigit()
                 .foregroundStyle(Tema.tintaSuave)
         }

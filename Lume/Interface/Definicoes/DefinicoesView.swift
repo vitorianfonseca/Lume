@@ -61,11 +61,11 @@ struct DefinicoesView: View {
 
                     HStack {
                         Button("Ajuda e apoio") {}
-                            .font(.footnote.weight(.medium))
+                            .font(Tema.fonte(13, .medium))
                             .foregroundStyle(Tema.douradoEscuro)
                         Spacer()
                         Text("Lume · versão 1.0")
-                            .font(.caption)
+                            .font(Tema.fonte(12))
                             .foregroundStyle(Tema.tintaSuave)
                     }
                     .padding(.top, 4)
@@ -98,10 +98,10 @@ struct DefinicoesView: View {
                 AvatarDeIniciais(texto: nomeDePerfil, lado: 48)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(nomeDePerfil)
-                        .font(.headline)
+                        .font(Tema.fonte(17, .semibold))
                         .foregroundStyle(Tema.tinta)
                     Text("O teu espaço pessoal")
-                        .font(.footnote)
+                        .font(Tema.fonte(13))
                         .foregroundStyle(Tema.tintaSuave)
                 }
                 Spacer()
@@ -113,10 +113,10 @@ struct DefinicoesView: View {
     private var estadoDoICloud: some View {
         HStack(spacing: 8) {
             Image(systemName: "icloud")
-                .font(.footnote)
+                .font(Tema.fonte(13))
                 .foregroundStyle(Tema.tintaSuave)
             Text("iCloud ativo · os dados sincronizam automaticamente")
-                .font(.footnote)
+                .font(Tema.fonte(13))
                 .foregroundStyle(Tema.tintaSuave)
         }
     }
@@ -125,15 +125,15 @@ struct DefinicoesView: View {
         VStack(alignment: .leading, spacing: 4) {
             Label {
                 Text("Os teus dados são teus.")
-                    .font(.subheadline.weight(.semibold))
+                    .font(Tema.fonte(15, .semibold))
                     .foregroundStyle(Tema.tinta)
             } icon: {
                 Image(systemName: "lock")
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.positivo)
             }
             Text("Regista offline e gere a sincronização com o teu iCloud nas definições.")
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -152,20 +152,20 @@ struct DefinicoesView: View {
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: simbolo)
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.tintaFosca)
                     .frame(width: 20)
                 Text(titulo)
-                    .font(.subheadline)
+                    .font(Tema.fonte(15))
                     .foregroundStyle(Tema.tinta)
                 Spacer()
                 if !valor.isEmpty {
                     Text(valor)
-                        .font(.footnote)
+                        .font(Tema.fonte(13))
                         .foregroundStyle(Tema.tintaSuave)
                 }
                 Image(systemName: "chevron.right")
-                    .font(.caption2)
+                    .font(Tema.fonte(11))
                     .foregroundStyle(Tema.tintaSuave)
             }
             .padding(.vertical, 13)
@@ -218,22 +218,22 @@ private struct ContasECarteirasView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 HStack(spacing: 6) {
                                     Text(conta.nome)
-                                        .font(.subheadline.weight(.medium))
+                                        .font(Tema.fonte(15, .medium))
                                         .foregroundStyle(Tema.tinta)
                                     if conta.principal {
                                         Image(systemName: "star.fill")
-                                            .font(.caption2)
+                                            .font(Tema.fonte(11))
                                             .foregroundStyle(Tema.dourado)
                                             .accessibilityLabel("Conta principal")
                                     }
                                 }
                                 Text(conta.tipo.nome)
-                                    .font(.footnote)
+                                    .font(Tema.fonte(13))
                                     .foregroundStyle(Tema.tintaSuave)
                             }
                             Spacer()
                             Text(FormatadorDeMoeda.texto(conta.saldoAtual))
-                                .font(.subheadline)
+                                .font(Tema.fonte(15))
                                 .monospacedDigit()
                                 .foregroundStyle(Tema.tintaSuave)
                         }
@@ -250,11 +250,11 @@ private struct ContasECarteirasView: View {
             }
 
             Button("Adicionar conta") { mostrarNovaConta = true }
-                .font(.footnote.weight(.medium))
+                .font(Tema.fonte(13, .medium))
                 .foregroundStyle(Tema.douradoEscuro)
 
             Text("Toca numa conta para a tornares principal: é o cartão dourado e a conta usada nos novos registos. Mantém o dedo numa conta para a eliminar.")
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
         }
         .sheet(isPresented: $mostrarNovaConta) { FormularioDeConta() }
@@ -283,16 +283,16 @@ private struct CategoriasView: View {
                     HStack {
                         Label {
                             Text(categoria.nome)
-                                .font(.subheadline)
+                                .font(Tema.fonte(15))
                                 .foregroundStyle(Tema.tinta)
                         } icon: {
                             Image(systemName: categoria.simbolo)
-                                .font(.footnote)
+                                .font(Tema.fonte(13))
                                 .foregroundStyle(Tema.douradoEscuro)
                         }
                         Spacer()
                         Text(categoria.orcamentoMensal.map(FormatadorDeMoeda.texto) ?? "—")
-                            .font(.subheadline)
+                            .font(Tema.fonte(15))
                             .monospacedDigit()
                             .foregroundStyle(Tema.tintaSuave)
                     }
@@ -308,11 +308,11 @@ private struct CategoriasView: View {
             }
 
             Button("Adicionar categoria") { mostrarNovaCategoria = true }
-                .font(.footnote.weight(.medium))
+                .font(Tema.fonte(13, .medium))
                 .foregroundStyle(Tema.douradoEscuro)
 
             Text("O valor à direita é o limite mensal — edita-o no Planear, em \"Editar limites\".")
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
         }
         .sheet(isPresented: $mostrarNovaCategoria) {
@@ -345,11 +345,11 @@ private struct RecorrentesView: View {
             }
 
             Button("Adicionar recorrente") { mostrarNovaRecorrente = true }
-                .font(.footnote.weight(.medium))
+                .font(Tema.fonte(13, .medium))
                 .foregroundStyle(Tema.douradoEscuro)
 
             Text("As recorrentes ativas são descontadas ao mês inteiro no cálculo do número diário. Mantém o dedo numa linha para eliminar.")
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
         }
         .sheet(isPresented: $mostrarNovaRecorrente) {
@@ -368,15 +368,15 @@ private struct NotificacoesView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Label {
                     Text("Um lembrete na altura certa.")
-                        .font(.subheadline.weight(.semibold))
+                        .font(Tema.fonte(15, .semibold))
                         .foregroundStyle(Tema.tinta)
                 } icon: {
                     Image(systemName: "bell")
-                        .font(.footnote)
+                        .font(Tema.fonte(13))
                         .foregroundStyle(Tema.douradoEscuro)
                 }
                 Text("Recebes um aviso na véspera de cada conta fixa ativa. Gere as autorizações nas Definições do iPhone.")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -387,11 +387,11 @@ private struct NotificacoesView: View {
                 ForEach(recorrentes.filter(\.ativa)) { recorrente in
                     HStack {
                         Text(recorrente.nome)
-                            .font(.subheadline)
+                            .font(Tema.fonte(15))
                             .foregroundStyle(Tema.tinta)
                         Spacer()
                         Text("véspera do dia \(recorrente.diaDoMes)")
-                            .font(.footnote)
+                            .font(Tema.fonte(13))
                             .foregroundStyle(Tema.tintaSuave)
                     }
                     .padding(.vertical, 12)
@@ -401,7 +401,7 @@ private struct NotificacoesView: View {
 
             if !recorrentes.contains(where: \.ativa) {
                 Text("Sem recorrentes ativas — ativa uma em Contas fixas para receberes lembretes.")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
             }
         }
@@ -413,10 +413,10 @@ private struct AparenciaView: View {
         PaginaDePerfil(legenda: "OURO SOBRE BRANCO", titulo: "Aparência") {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Branco")
-                    .font(.subheadline.weight(.semibold))
+                    .font(Tema.fonte(15, .semibold))
                     .foregroundStyle(Tema.tinta)
                 Text("O Lume usa o tema claro do design — fundo branco, tinta espresso e ouro nos destaques. No modo escuro do iPhone, a paleta adapta-se sozinha.")
-                    .font(.caption)
+                    .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -435,17 +435,17 @@ private struct MoedaView: View {
         PaginaDePerfil(legenda: "CONVENÇÕES PORTUGUESAS", titulo: "Moeda") {
             HStack {
                 Text("Euro")
-                    .font(.subheadline)
+                    .font(Tema.fonte(15))
                     .foregroundStyle(Tema.tinta)
                 Spacer()
                 Text("EUR · €")
-                    .font(.subheadline)
+                    .font(Tema.fonte(15))
                     .foregroundStyle(Tema.tintaSuave)
             }
             .padding(.vertical, 12)
             Divider().overlay(Tema.separador)
             Text("Os valores usam vírgula decimal e espaço nos milhares — \"1 092,90 €\".")
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
         }
     }
@@ -459,7 +459,7 @@ private struct InteligenciaView: View {
     var body: some View {
         PaginaDePerfil(legenda: "A APP FAZ AS CONTAS", titulo: "Inteligência") {
             SecureField("Chave da API (sk-ant-…)", text: $chaveClaude)
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .padding(.horizontal, 14)
@@ -478,7 +478,7 @@ private struct InteligenciaView: View {
                 }
 
             Text("Com uma chave da Anthropic, o Claude passa a interpretar os registos, com os interpretadores locais como recurso. A chave fica no Keychain do aparelho e as contas continuam a ser feitas pela app.")
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
         }
     }
@@ -495,21 +495,21 @@ private struct DadosView: View {
                 Button("Apagar todos os movimentos", role: .destructive) {
                     confirmarApagarMovimentos = true
                 }
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 12)
                 Divider().overlay(Tema.separador)
                 Button("Repor a app", role: .destructive) {
                     confirmarReposicao = true
                 }
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 12)
                 Divider().overlay(Tema.separador)
             }
 
             Text("Repor a app apaga movimentos, recorrentes, categorias, contas, objetivos e definições dos meses.")
-                .font(.caption)
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
         }
         .confirmationDialog("Apagar todos os movimentos?", isPresented: $confirmarApagarMovimentos, titleVisibility: .visible) {
@@ -549,10 +549,10 @@ private struct LinhaDeRecorrenteEditavel: View {
         Toggle(isOn: $recorrente.ativa) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(recorrente.nome)
-                    .font(.subheadline)
+                    .font(Tema.fonte(15))
                     .foregroundStyle(Tema.tinta)
                 Text("dia \(recorrente.diaDoMes) · \(FormatadorDeMoeda.texto(recorrente.valor))")
-                    .font(.footnote)
+                    .font(Tema.fonte(13))
                     .foregroundStyle(Tema.tintaSuave)
             }
         }
@@ -694,7 +694,7 @@ private struct FormularioDeRecorrente: View {
             }
             CampoDeFormulario(legenda: "DIA DO MÊS") {
                 Stepper("Dia \(diaDoMes)", value: $diaDoMes, in: 1...31)
-                    .font(.subheadline)
+                    .font(Tema.fonte(15))
                     .foregroundStyle(Tema.tinta)
             }
             CampoDeFormulario(legenda: "CATEGORIA") {
@@ -730,10 +730,9 @@ private struct FolhaDeFormulario<Conteudo: View>: View {
                     aoGuardar()
                 } label: {
                     Text(textoDoBotao)
-                        .font(.headline)
+                        .font(Tema.fonte(15, .semibold))
                         .foregroundStyle(Color(hex: "302B24"))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .frame(maxWidth: .infinity, minHeight: 52)
                         .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
                 }
                 .disabled(!podeGuardar)
@@ -756,11 +755,10 @@ private struct CampoDeFormulario<Conteudo: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(legenda)
-                .font(.caption2.weight(.semibold))
-                .kerning(1.2)
+                .font(Tema.fonte(11))
                 .foregroundStyle(Tema.tintaSuave)
             conteudo()
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .foregroundStyle(Tema.tinta)
             Divider().overlay(Tema.separador)
         }

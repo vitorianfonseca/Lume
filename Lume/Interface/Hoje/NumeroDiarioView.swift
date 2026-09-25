@@ -25,15 +25,15 @@ struct NumeroDiarioView: View {
         let partes = partesDoValor(dia.hojePodesGastar)
         return VStack(alignment: .leading, spacing: 6) {
             Text(dia.hojePodesGastar < .zero ? "Hoje já passaste" : "Hoje podes gastar")
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .foregroundStyle(Tema.tintaSuave)
 
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(partes.inteira)
-                    .font(.system(size: tamanhoInteiro, weight: .bold))
+                    .font(Tema.fonte(tamanhoInteiro, .semibold))
                     .foregroundStyle(Tema.tinta)
                 Text(partes.decimais)
-                    .font(.system(size: tamanhoDecimais))
+                    .font(Tema.fonte(tamanhoDecimais))
                     .foregroundStyle(Tema.tintaSuave)
             }
             .monospacedDigit()
@@ -42,7 +42,7 @@ struct NumeroDiarioView: View {
             .lineLimit(1)
 
             Text("\(fraseDosDias(dia.diasRestantes)) · \(FormatadorDeMoeda.texto(dia.disponivelDoMes)) disponíveis")
-                .font(.footnote)
+                .font(Tema.fonte(13))
                 .foregroundStyle(Tema.tintaSuave)
 
             // A barra dourada do Figma: quanto da fatia de hoje já foi gasta.
@@ -60,17 +60,17 @@ struct NumeroDiarioView: View {
     private var semRendimento: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Define o rendimento do mês")
-                .font(.title.weight(.bold))
+                .font(Tema.fonte(27, .semibold))
                 .foregroundStyle(Tema.tinta)
 
             Text("Indica quanto esperas receber e a Lume calcula o teu número diário — quanto podes gastar por dia.")
-                .font(.subheadline)
+                .font(Tema.fonte(15))
                 .foregroundStyle(Tema.tintaSuave)
                 .fixedSize(horizontal: false, vertical: true)
 
             Button { aoDefinirRendimento() } label: {
                 Text("Definir rendimento")
-                    .font(.subheadline.weight(.semibold))
+                    .font(Tema.fonte(15, .semibold))
                     // Tinta escura fixa: sobre dourado, o contraste é igual nos dois modos.
                     .foregroundStyle(Color(hex: "141416"))
                     .padding(.horizontal, 20)
