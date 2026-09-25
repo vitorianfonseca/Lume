@@ -182,19 +182,24 @@ struct RegistarView: View {
     }
 
     private var seletorDeModo: some View {
+        // Três terços iguais a encher a largura, como no frame (108 pt cada).
         HStack(spacing: 8) {
             ForEach(ModoDeRegisto.allCases) { opcao in
                 Button {
                     withAnimation(.snappy) { modo = opcao }
                 } label: {
                     HStack(spacing: 7) {
-                        Image(systemName: opcao.simbolo)
-                            .font(Tema.fonte(12))
+                        if opcao == .texto {
+                            IconeDeTexto(tamanho: 14)
+                        } else {
+                            Image(systemName: opcao.simbolo)
+                                .font(Tema.fonte(13))
+                        }
                         Text(opcao.rawValue)
                             .font(Tema.fonte(13, modo == opcao ? .semibold : .regular))
                     }
                     .foregroundStyle(modo == opcao ? Tema.douradoEscuro : Tema.tintaSuave)
-                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity)
                     .frame(height: 38)
                     .background(
                         modo == opcao ? AnyShapeStyle(Tema.areia) : AnyShapeStyle(.clear),
@@ -203,7 +208,6 @@ struct RegistarView: View {
                 }
                 .accessibilityAddTraits(modo == opcao ? [.isSelected] : [])
             }
-            Spacer()
         }
     }
 
@@ -258,8 +262,7 @@ struct RegistarView: View {
                     .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
                 Spacer()
-                Image(systemName: "textformat")
-                    .font(Tema.fonte(13))
+                IconeDeTexto(tamanho: 15)
                     .foregroundStyle(Tema.douradoEscuro)
             }
             .padding(.top, 6)

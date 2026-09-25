@@ -116,6 +116,18 @@ struct LinhaDeTransacao: View {
     }
 }
 
+/// O "T" serifado dos frames — o SF Symbols não tem este glifo,
+/// por isso desenha-se com texto.
+struct IconeDeTexto: View {
+    var tamanho: CGFloat = 13
+
+    var body: some View {
+        Text("T")
+            .font(.system(size: tamanho, weight: .medium, design: .serif))
+            .accessibilityHidden(true)
+    }
+}
+
 /// Avatar quadrado com as iniciais da loja, como nos frames.
 struct AvatarDeIniciais: View {
     let texto: String

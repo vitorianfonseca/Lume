@@ -177,7 +177,7 @@ struct BoasVindasView: View {
             .frame(maxWidth: .infinity)
 
         VStack(alignment: .leading, spacing: 14) {
-            vantagem("textformat", "Regista como te der jeito", "Escreve, fala ou fotografa um talão.")
+            vantagem(nil, "Regista como te der jeito", "Escreve, fala ou fotografa um talão.")
             vantagem("creditcard", "Percebe para onde vai", "Movimentos e orçamentos num só lugar.")
             vantagem("lock", "O teu espaço, privado", "Podes começar sem criar uma conta.")
         }
@@ -187,13 +187,19 @@ struct BoasVindasView: View {
         ligacao("Já tenho conta · Entrar") { passo = .entrar }
     }
 
-    private func vantagem(_ simbolo: String, _ titulo: String, _ texto: String) -> some View {
+    private func vantagem(_ simbolo: String?, _ titulo: String, _ texto: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: simbolo)
-                .font(Tema.fonte(13))
-                .foregroundStyle(Tema.douradoEscuro)
-                .frame(width: 20)
-                .padding(.top, 2)
+            Group {
+                if let simbolo {
+                    Image(systemName: simbolo)
+                        .font(Tema.fonte(13))
+                } else {
+                    IconeDeTexto(tamanho: 13)
+                }
+            }
+            .foregroundStyle(Tema.douradoEscuro)
+            .frame(width: 20)
+            .padding(.top, 2)
             VStack(alignment: .leading, spacing: 2) {
                 Text(titulo)
                     .font(Tema.fonte(15, .semibold))

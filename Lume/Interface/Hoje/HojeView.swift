@@ -269,19 +269,25 @@ struct HojeView: View {
 
     private var acoesRapidas: some View {
         HStack(spacing: 10) {
-            acao("Escrever", simbolo: "textformat") { aoRegistar(.texto) }
+            acao("Escrever", simbolo: nil) { aoRegistar(.texto) }
             acao("Falar", simbolo: "mic") { aoRegistar(.voz) }
             acao("Talão", simbolo: "camera") { aoRegistar(.talao) }
         }
     }
 
     /// Como no frame: ícone dourado + texto, sem cápsulas nem contornos.
-    private func acao(_ titulo: String, simbolo: String, acao: @escaping () -> Void) -> some View {
+    /// Sem símbolo SF, usa-se o "T" serifado do design.
+    private func acao(_ titulo: String, simbolo: String?, acao: @escaping () -> Void) -> some View {
         Button(action: acao) {
             HStack(spacing: 8) {
-                Image(systemName: simbolo)
-                    .font(Tema.fonte(15))
-                    .foregroundStyle(Tema.douradoEscuro)
+                if let simbolo {
+                    Image(systemName: simbolo)
+                        .font(Tema.fonte(15))
+                        .foregroundStyle(Tema.douradoEscuro)
+                } else {
+                    IconeDeTexto(tamanho: 15)
+                        .foregroundStyle(Tema.douradoEscuro)
+                }
                 Text(titulo)
                     .font(Tema.fonte(15, .medium))
                     .foregroundStyle(Tema.tinta)
