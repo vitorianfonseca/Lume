@@ -10,8 +10,8 @@ struct CabecalhoDeEcra: View {
     let titulo: String
 
     var body: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(legenda)
                     .font(Tema.fonte(11))
                     .foregroundStyle(Tema.tintaSuave)
@@ -23,7 +23,7 @@ struct CabecalhoDeEcra: View {
             Image("SimboloLume")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 38, height: 38)
+                .frame(width: 42, height: 39.2)
                 .accessibilityHidden(true)
         }
     }
@@ -43,7 +43,7 @@ struct TituloDeSeccao: View {
             Spacer()
             if let acao, let aoTocar {
                 Button(acao) { aoTocar() }
-                    .font(Tema.fonte(13, .medium))
+                    .font(Tema.fonte(12, .medium))
                     .foregroundStyle(Tema.douradoEscuro)
             }
         }
@@ -62,16 +62,18 @@ struct LinhaDeTransacao: View {
     var estilo = Estilo.resumo
 
     var body: some View {
+        // A linha do componente "Lume / Movimento": 62 pt de altura,
+        // avatar 40, nome 14 Medium, detalhe 11, valor 14 Medium.
         HStack(spacing: 12) {
             AvatarDeIniciais(texto: titulo)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(titulo)
-                    .font(Tema.fonte(15, .medium))
+                    .font(Tema.fonte(14, .medium))
                     .foregroundStyle(Tema.tinta)
                 if let detalhe {
                     Text(detalhe)
-                        .font(Tema.fonte(13))
+                        .font(Tema.fonte(11))
                         .foregroundStyle(Tema.tintaSuave)
                 }
             }
@@ -79,11 +81,11 @@ struct LinhaDeTransacao: View {
             Spacer()
 
             Text(valorFormatado)
-                .font(Tema.fonte(15))
+                .font(Tema.fonte(14, .medium))
                 .monospacedDigit()
                 .foregroundStyle(transacao.tipo == .receita ? Tema.positivo : Tema.tinta)
         }
-        .padding(.vertical, 10)
+        .frame(height: 62)
         .accessibilityElement(children: .combine)
     }
 
@@ -128,17 +130,18 @@ struct IconeDeTexto: View {
     }
 }
 
-/// Avatar quadrado com as iniciais da loja, como nos frames.
+/// Avatar quadrado com as iniciais da loja, como no componente do Figma:
+/// 40 pt, raio 13, fundo warm e iniciais 12 SemiBold em dourado.
 struct AvatarDeIniciais: View {
     let texto: String
-    var lado: CGFloat = 38
+    var lado: CGFloat = 40
 
     var body: some View {
         Text(iniciais)
-            .font(lado > 44 ? .subheadline.weight(.semibold) : .caption.weight(.semibold))
+            .font(Tema.fonte(lado > 44 ? 15 : 12, .semibold))
             .foregroundStyle(Tema.douradoEscuro)
             .frame(width: lado, height: lado)
-            .background(Tema.bege, in: RoundedRectangle(cornerRadius: lado > 44 ? 14 : 10))
+            .background(Tema.bege, in: RoundedRectangle(cornerRadius: lado > 44 ? 16 : 13))
             .accessibilityHidden(true)
     }
 
@@ -233,22 +236,21 @@ extension Transacao {
     }
 }
 
-/// Barra fina do sistema visual: trilho discreto, preenchimento dourado
-/// metálico (o único gradiente permitido) ou cinzento quando ainda há folga.
-/// Enche com mola ao aparecer e anima as mudanças de valor.
+/// Barra de progresso do Figma: 5 pt, raio 2, trilho warm e preenchimento
+/// goldLight plano — sem gradientes. Enche com mola ao aparecer.
 struct BarraDeProgresso: View {
     let fracao: Double
     var dourada = true
-    var altura: CGFloat = 6
+    var altura: CGFloat = 5
 
     @State private var visivel = false
 
     var body: some View {
         GeometryReader { geometria in
             ZStack(alignment: .leading) {
-                Capsule().fill(Tema.separador)
-                Capsule()
-                    .fill(dourada ? AnyShapeStyle(Tema.douradoMetalico) : AnyShapeStyle(Tema.tintaSuave.opacity(0.55)))
+                RoundedRectangle(cornerRadius: 2).fill(Tema.bege)
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(dourada ? AnyShapeStyle(Tema.douradoBotao) : AnyShapeStyle(Tema.tintaSuave.opacity(0.55)))
                     .frame(width: geometria.size.width * min(max(visivel ? fracao : 0, 0), 1))
             }
         }
