@@ -223,6 +223,9 @@ struct MovimentosView: View {
             }
             .accessibilityLabel("Filtrar por categoria")
         }
+        // Dentro de uma linha de List, só com .borderless é que cada
+        // botão recebe o toque individualmente.
+        .buttonStyle(.borderless)
     }
 
     /// O cartão areia com o resumo do mês: movimentos, despesas e receitas.
@@ -303,6 +306,7 @@ struct MovimentosView: View {
             RoundedRectangle(cornerRadius: Tema.Raio.campo)
                 .strokeBorder(Tema.separador, lineWidth: 1)
         )
+        .buttonStyle(.borderless)
     }
 
     private func titulo(para dia: Date) -> String {
