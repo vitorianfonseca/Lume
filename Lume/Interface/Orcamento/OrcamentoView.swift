@@ -37,13 +37,22 @@ struct OrcamentoView: View {
                     titulo: segmento == .orcamentos ? "Planear" : "Os teus objetivos"
                 )
                 .animation(.snappy, value: segmento)
+                .entrada()
 
-                seletorDeSegmento
+                seletorDeSegmento.entrada(0.05)
 
-                switch segmento {
-                case .orcamentos: orcamentos
-                case .objetivos: objetivos
+                // O conteúdo desliza ao trocar de segmento.
+                Group {
+                    switch segmento {
+                    case .orcamentos: orcamentos
+                    case .objetivos: objetivos
+                    }
                 }
+                .transition(.asymmetric(
+                    insertion: .move(edge: segmento == .objetivos ? .trailing : .leading).combined(with: .opacity),
+                    removal: .opacity
+                ))
+                .entrada(0.1)
             }
             .padding(.horizontal, Tema.margemDoEcra)
             .padding(.top, 4)
@@ -64,6 +73,8 @@ struct OrcamentoView: View {
         }
     }
 
+    @Namespace private var espacoDoSeletor
+
     private var seletorDeSegmento: some View {
         HStack(spacing: 8) {
             ForEach(Segmento.allCases, id: \.self) { opcao in
@@ -75,10 +86,14 @@ struct OrcamentoView: View {
                         .foregroundStyle(segmento == opcao ? Tema.douradoEscuro : Tema.tintaSuave)
                         .frame(maxWidth: .infinity)
                         .frame(height: 32)
-                        .background(
-                            segmento == opcao ? AnyShapeStyle(Tema.areia) : AnyShapeStyle(.clear),
-                            in: RoundedRectangle(cornerRadius: 16)
-                        )
+                        .background {
+                            // O fundo areia desliza entre as opções.
+                            if segmento == opcao {
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Tema.areia)
+                                    .matchedGeometryEffect(id: "seletor", in: espacoDoSeletor)
+                            }
+                        }
                 }
                 .accessibilityAddTraits(segmento == opcao ? [.isSelected] : [])
             }
@@ -120,6 +135,7 @@ struct OrcamentoView: View {
             Text(FormatadorDeMoeda.texto(rendimentoDoMes))
                 .font(Tema.fonte(31, .medium))
                 .monospacedDigit()
+                .contentTransition(.numericText())
                 .foregroundStyle(Tema.tinta)
 
             BarraDeProgresso(fracao: fracaoUtilizada)
@@ -199,6 +215,7 @@ struct OrcamentoView: View {
             Text(FormatadorDeMoeda.texto(totalReservado))
                 .font(Tema.fonte(35, .medium))
                 .monospacedDigit()
+                .contentTransition(.numericText())
                 .foregroundStyle(Tema.tinta)
             Text("reservado para os teus planos · continua assim")
                 .font(Tema.fonte(12, .medium))
@@ -221,6 +238,7 @@ struct OrcamentoView: View {
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
         }
+        .buttonStyle(EscalaAoTocar())
         .padding(.top, 4)
     }
 
@@ -254,6 +272,7 @@ struct OrcamentoView: View {
                 Text("\(FormatadorDeMoeda.textoInteiroAgrupado(meta.valorPoupado)) €")
                     .font(Tema.fonte(24, .medium))
                     .monospacedDigit()
+                    .contentTransition(.numericText())
                     .foregroundStyle(Tema.tinta)
                 Spacer()
                 Text("de \(FormatadorDeMoeda.textoInteiroAgrupado(meta.valorAlvo)) €")
@@ -420,6 +439,7 @@ private struct EditarLimitesView: View {
                         .frame(maxWidth: .infinity, minHeight: 52)
                         .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
                 }
+                .buttonStyle(EscalaAoTocar())
 
                 Text("Os movimentos existentes mantêm-se no teu histórico.")
                     .font(Tema.fonte(12))
@@ -446,6 +466,7 @@ private struct EditarLimitesView: View {
                 .keyboardType(.decimalPad)
                 .font(Tema.fonte(31, .medium))
                 .monospacedDigit()
+                .contentTransition(.numericText())
                 .foregroundStyle(Tema.tinta)
             HStack {
                 Text("Poupança planeada")
@@ -601,6 +622,7 @@ private struct FormularioDeObjetivo: View {
                         .frame(maxWidth: .infinity, minHeight: 52)
                         .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
                 }
+                .buttonStyle(EscalaAoTocar())
                 .disabled(nome.trimmingCharacters(in: .whitespaces).isEmpty || valorAlvo <= .zero)
 
                 Text("Podes alterar o valor ou a data a qualquer momento.")
@@ -711,6 +733,7 @@ private struct ReforcoDeObjetivo: View {
                     .frame(maxWidth: .infinity, minHeight: 52)
                     .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
             }
+            .buttonStyle(EscalaAoTocar())
             .disabled(valor <= .zero)
 
             Spacer(minLength: 0)

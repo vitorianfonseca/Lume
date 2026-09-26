@@ -162,6 +162,7 @@ struct CartaoDeConfirmacaoView: View {
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
         }
+        .buttonStyle(EscalaAoTocar())
     }
 
     /// `loja` é opcional no modelo; o campo de texto trabalha com "" ↔ nil.

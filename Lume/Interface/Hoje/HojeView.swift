@@ -32,11 +32,11 @@ struct HojeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                cabecalho
-                cartaoDoMes
-                acoesRapidas
-                limites
-                ultimosMovimentos
+                cabecalho.entrada()
+                cartaoDoMes.entrada(0.05)
+                acoesRapidas.entrada(0.1)
+                limites.entrada(0.15)
+                ultimosMovimentos.entrada(0.2)
             }
             .padding(.horizontal, Tema.margemDoEcra)
             .padding(.top, 4)
@@ -145,6 +145,7 @@ struct HojeView: View {
                         Text(FormatadorDeMoeda.texto(dia.disponivelDoMes))
                             .font(Tema.fonte(20, .medium))
                             .monospacedDigit()
+                            .contentTransition(.numericText())
                             .foregroundStyle(Tema.tinta)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -155,6 +156,7 @@ struct HojeView: View {
                         Text(FormatadorDeMoeda.texto(porDia(de: dia)))
                             .font(Tema.fonte(20, .medium))
                             .monospacedDigit()
+                            .contentTransition(.numericText())
                             .foregroundStyle(Tema.tinta)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)

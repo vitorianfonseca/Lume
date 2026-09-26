@@ -118,6 +118,73 @@ struct LinhaDeTransacao: View {
     }
 }
 
+/// Entrada suave em cascata: aparece a subir, com um pequeno atraso
+/// por bloco — o ritmo discreto que se espera de uma app da Apple.
+struct Entrada: ViewModifier {
+    let atraso: Double
+    @State private var visivel = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(visivel ? 1 : 0)
+            .offset(y: visivel ? 0 : 14)
+            .onAppear {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.85).delay(atraso)) {
+                    visivel = true
+                }
+            }
+    }
+}
+
+extension View {
+    /// Aparece com mola e um atraso opcional (cascata entre blocos).
+    func entrada(_ atraso: Double = 0) -> some View {
+        modifier(Entrada(atraso: atraso))
+    }
+}
+
+/// Pulso suave enquanto algo está ativo (a gravação de voz).
+struct Pulso: ViewModifier {
+    let ativo: Bool
+    @State private var grande = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(grande ? 1.06 : 1)
+            .onChange(of: ativo) { _, agora in
+                if agora {
+                    withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                        grande = true
+                    }
+                } else {
+                    withAnimation(.easeOut(duration: 0.3)) { grande = false }
+                }
+            }
+            .onAppear {
+                guard ativo else { return }
+                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                    grande = true
+                }
+            }
+    }
+}
+
+extension View {
+    func pulso(_ ativo: Bool) -> some View {
+        modifier(Pulso(ativo: ativo))
+    }
+}
+
+/// Botões principais afundam ligeiramente ao toque.
+struct EscalaAoTocar: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.9 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
 /// O "T" serifado dos frames — o SF Symbols não tem este glifo,
 /// por isso desenha-se com texto.
 struct IconeDeTexto: View {

@@ -21,6 +21,7 @@ struct MovimentosView: View {
     @State private var categoriaFiltrada: String?
     @State private var transacaoAberta: Transacao?
     @State private var transacaoEmEdicao: Transacao?
+    @Namespace private var espacoDoSeletor
 
     private var filtradas: [Transacao] {
         transacoes.filter { transacao in
@@ -158,6 +159,10 @@ struct MovimentosView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Tema.fundo)
+        // As linhas reorganizam-se com mola ao filtrar ou pesquisar.
+        .animation(.snappy, value: filtro)
+        .animation(.snappy, value: categoriaFiltrada)
+        .animation(.snappy, value: pesquisa)
         .sheet(item: $transacaoAberta) { transacao in
             MovimentoView(
                 transacao: transacao,
@@ -206,10 +211,14 @@ struct MovimentosView: View {
                         .foregroundStyle(filtro == opcao ? Tema.douradoEscuro : Tema.tintaSuave)
                         .padding(.horizontal, 15)
                         .frame(height: 32)
-                        .background(
-                            filtro == opcao ? AnyShapeStyle(Tema.areia) : AnyShapeStyle(.clear),
-                            in: RoundedRectangle(cornerRadius: 16)
-                        )
+                        .background {
+                            // O fundo areia desliza entre os filtros.
+                            if filtro == opcao {
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Tema.areia)
+                                    .matchedGeometryEffect(id: "filtro", in: espacoDoSeletor)
+                            }
+                        }
                 }
                 .accessibilityAddTraits(filtro == opcao ? [.isSelected] : [])
             }
@@ -255,6 +264,7 @@ struct MovimentosView: View {
                     Text(FormatadorDeMoeda.texto(despesasDoMes))
                         .font(Tema.fonte(20, .medium))
                         .monospacedDigit()
+                        .contentTransition(.numericText())
                         .foregroundStyle(Tema.tinta)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -265,6 +275,7 @@ struct MovimentosView: View {
                     Text(FormatadorDeMoeda.texto(receitasDoMes))
                         .font(Tema.fonte(20, .medium))
                         .monospacedDigit()
+                        .contentTransition(.numericText())
                         .foregroundStyle(Tema.tinta)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

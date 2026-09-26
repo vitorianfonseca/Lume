@@ -24,6 +24,7 @@ struct MovimentoView: View {
                     Text(valorFormatado)
                         .font(Tema.fonte(39, .medium))
                         .monospacedDigit()
+                        .contentTransition(.numericText())
                         .foregroundStyle(transacao.tipo == .receita ? Tema.positivo : Tema.tinta)
                     if let categoria = transacao.categoria {
                         Text(categoria.nome)
@@ -98,6 +99,7 @@ struct MovimentoView: View {
                         .frame(maxWidth: .infinity, minHeight: 52)
                         .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
                 }
+                .buttonStyle(EscalaAoTocar())
             }
             .padding(.horizontal, Tema.margemDoEcra)
             .padding(.top, 18)

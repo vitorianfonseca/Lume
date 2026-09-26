@@ -58,6 +58,7 @@ struct RegistarView: View {
     @State private var mostrarEdicaoDoTalao = false
     @State private var mostrarGuardado = false
     @FocusState private var campoFocado: Bool
+    @Namespace private var espacoDoSeletor
 
     var body: some View {
         ScrollView {
@@ -201,10 +202,14 @@ struct RegistarView: View {
                     .foregroundStyle(modo == opcao ? Tema.douradoEscuro : Tema.tintaSuave)
                     .frame(maxWidth: .infinity)
                     .frame(height: 38)
-                    .background(
-                        modo == opcao ? AnyShapeStyle(Tema.areia) : AnyShapeStyle(.clear),
-                        in: RoundedRectangle(cornerRadius: Tema.Raio.chip)
-                    )
+                    .background {
+                        // O fundo areia desliza entre os modos.
+                        if modo == opcao {
+                            RoundedRectangle(cornerRadius: Tema.Raio.chip)
+                                .fill(Tema.areia)
+                                .matchedGeometryEffect(id: "modo", in: espacoDoSeletor)
+                        }
+                    }
                 }
                 .accessibilityAddTraits(modo == opcao ? [.isSelected] : [])
             }
@@ -280,6 +285,7 @@ struct RegistarView: View {
         VStack(spacing: 16) {
             VStack(spacing: 14) {
                 moedaDaMarca(78)
+                    .pulso(gravador.aGravar)
                 Text(gravador.aGravar ? "Estou a ouvir…" : "Toca em começar e fala")
                     .font(Tema.fonte(23, .medium))
                     .foregroundStyle(Tema.tinta)
@@ -705,6 +711,7 @@ struct RegistarView: View {
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
         }
+        .buttonStyle(EscalaAoTocar())
     }
 
     private func pararVoz() {

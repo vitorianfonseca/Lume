@@ -744,6 +744,7 @@ private struct FolhaDeFormulario<Conteudo: View>: View {
                         .frame(maxWidth: .infinity, minHeight: 52)
                         .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
                 }
+                .buttonStyle(EscalaAoTocar())
                 .disabled(!podeGuardar)
             }
             .padding(.horizontal, Tema.margemDoEcra)

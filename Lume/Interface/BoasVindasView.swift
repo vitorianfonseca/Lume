@@ -38,16 +38,23 @@ struct BoasVindasView: View {
             VStack(alignment: .leading, spacing: 20) {
                 cabecalho
 
-                switch passo {
-                case .bemVinda: bemVinda
-                case .entrar: entrar
-                case .criarConta: criarConta
-                case .recuperar: recuperar
-                case .ritmo: ritmo
-                case .limite: limite
-                case .notificacoes: notificacoes
-                case .pronto: pronto
+                // Cada passo entra a deslizar da direita, como uma navegação.
+                Group {
+                    switch passo {
+                    case .bemVinda: bemVinda
+                    case .entrar: entrar
+                    case .criarConta: criarConta
+                    case .recuperar: recuperar
+                    case .ritmo: ritmo
+                    case .limite: limite
+                    case .notificacoes: notificacoes
+                    case .pronto: pronto
+                    }
                 }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .opacity
+                ))
             }
             .padding(.horizontal, Tema.margemDoEcra)
             .padding(.top, 18)
@@ -113,6 +120,7 @@ struct BoasVindasView: View {
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
         }
+        .buttonStyle(EscalaAoTocar())
         .disabled(!ativo)
     }
 
