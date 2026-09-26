@@ -139,10 +139,10 @@ struct AvatarDeIniciais: View {
 
     var body: some View {
         Text(iniciais)
-            .font(Tema.fonte(lado > 44 ? 16 : 12, .semibold))
+            .font(Tema.fonte(lado >= 54 ? 18 : (lado >= 48 ? 16 : 12), .semibold))
             .foregroundStyle(Tema.douradoEscuro)
             .frame(width: lado, height: lado)
-            .background(fundo, in: RoundedRectangle(cornerRadius: lado > 44 ? 16 : 13))
+            .background(fundo, in: RoundedRectangle(cornerRadius: lado >= 54 ? 18 : (lado >= 48 ? 16 : 13)))
             .accessibilityHidden(true)
     }
 

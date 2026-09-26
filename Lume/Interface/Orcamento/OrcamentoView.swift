@@ -440,11 +440,11 @@ private struct EditarLimitesView: View {
         @Bindable var selecionadas = selecionadas
         return VStack(alignment: .leading, spacing: 8) {
             Text("ORÇAMENTO MENSAL")
-                .font(Tema.fonte(11))
+                .font(Tema.fonte(11, .semibold))
                 .foregroundStyle(Tema.douradoEscuro)
             TextField("0 €", value: $selecionadas.rendimentoEsperado, format: moeda)
                 .keyboardType(.decimalPad)
-                .font(Tema.fonte(34, .semibold))
+                .font(Tema.fonte(31, .medium))
                 .monospacedDigit()
                 .foregroundStyle(Tema.tinta)
             HStack {

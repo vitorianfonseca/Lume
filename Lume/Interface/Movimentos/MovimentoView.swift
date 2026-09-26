@@ -11,71 +11,77 @@ struct MovimentoView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
+            VStack(spacing: 12) {
                 CabecalhoDeEcra(legenda: legendaDaData, titulo: "O movimento")
 
+                // O cartão do movimento: avatar 54, nome 22 SemiBold,
+                // valor 39 Medium e o chip da categoria.
                 VStack(spacing: 12) {
-                    AvatarDeIniciais(texto: titulo, lado: 56)
+                    AvatarDeIniciais(texto: titulo, lado: 54)
                     Text(titulo)
-                        .font(Tema.fonte(17, .semibold))
+                        .font(Tema.fonte(22, .semibold))
                         .foregroundStyle(Tema.tinta)
                     Text(valorFormatado)
-                        .font(Tema.fonte(34, .semibold))
+                        .font(Tema.fonte(39, .medium))
                         .monospacedDigit()
                         .foregroundStyle(transacao.tipo == .receita ? Tema.positivo : Tema.tinta)
                     if let categoria = transacao.categoria {
                         Text(categoria.nome)
-                            .font(Tema.fonte(12, .medium))
+                            .font(Tema.fonte(12, .semibold))
                             .foregroundStyle(Tema.douradoEscuro)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 5)
-                            .background(Tema.areia, in: Capsule())
+                            .padding(.horizontal, 16)
+                            .frame(height: 32)
+                            .background(Tema.areia, in: RoundedRectangle(cornerRadius: 16))
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.top, 8)
-
-                VStack(alignment: .leading, spacing: 12) {
-                    linha("Conta", simbolo: "creditcard", valor: nomeDaConta)
-                    linha("Origem", simbolo: "sparkles", valor: transacao.origem.nome ?? "Manual")
-                    linha("Data", simbolo: "calendar", valor: dataCompleta)
-                }
-                .padding(18)
+                .padding(24)
                 .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
                 .overlay(
                     RoundedRectangle(cornerRadius: Tema.Raio.cartao)
                         .strokeBorder(Tema.separador, lineWidth: 1)
                 )
 
-                if let nota = transacao.nota, !nota.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 4) {
+                    linha("Conta", simbolo: "creditcard", valor: nomeDaConta)
+                    linha("Origem", simbolo: simboloDaOrigem, valor: transacao.origem.nome ?? "Manual")
+                    linha("Data", simbolo: "calendar", valor: dataCompleta)
+                    if let nota = transacao.nota, !nota.isEmpty {
+                        Divider().overlay(Tema.separador)
                         Text("NOTA")
-                            .font(Tema.fonte(11))
+                            .font(Tema.fonte(10, .semibold))
                             .foregroundStyle(Tema.tintaSuave)
+                            .padding(.top, 8)
                         Text(nota)
-                            .font(Tema.fonte(15))
+                            .font(Tema.fonte(14))
                             .foregroundStyle(Tema.tinta)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Tema.Raio.cartao)
+                        .strokeBorder(Tema.separador, lineWidth: 1)
+                )
 
                 if transacao.fotoDoTalao != nil {
                     Button {
                         mostrarTalao = true
                     } label: {
-                        HStack {
-                            Image(systemName: "doc.text.viewfinder")
-                                .font(Tema.fonte(13))
-                                .foregroundStyle(Tema.douradoEscuro)
-                            Text("Ver talão original")
+                        HStack(spacing: 10) {
+                            Image(systemName: "camera")
                                 .font(Tema.fonte(15))
+                                .foregroundStyle(Tema.tintaFosca)
+                            Text("Ver talão original")
+                                .font(Tema.fonte(14, .medium))
                                 .foregroundStyle(Tema.tinta)
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(Tema.fonte(12))
+                                .font(Tema.fonte(13))
                                 .foregroundStyle(Tema.tintaSuave)
                         }
-                        .padding(.vertical, 12)
+                        .frame(height: 55)
                     }
                 }
 
@@ -114,6 +120,16 @@ struct MovimentoView: View {
 
     private var titulo: String { transacao.loja ?? transacao.descricao }
 
+    /// O ícone da linha Origem acompanha o modo de registo.
+    private var simboloDaOrigem: String {
+        switch transacao.origem {
+        case .talao: "camera"
+        case .voz: "mic"
+        case .texto: "text.alignleft"
+        case .manual: "hand.tap"
+        }
+    }
+
     private var nomeDaConta: String {
         guard let conta = transacao.conta else { return "—" }
         return conta.principal ? "Conta principal" : conta.nome
@@ -145,17 +161,19 @@ struct MovimentoView: View {
     }
 
     private func linha(_ titulo: String, simbolo: String, valor: String) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Image(systemName: simbolo)
-                .font(Tema.fonte(13))
+                .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tintaSuave)
+                .frame(width: 16)
             Text(titulo)
-                .font(Tema.fonte(15))
+                .font(Tema.fonte(13))
                 .foregroundStyle(Tema.tintaSuave)
             Spacer()
             Text(valor)
-                .font(Tema.fonte(15))
+                .font(Tema.fonte(13, .medium))
                 .foregroundStyle(Tema.tinta)
         }
+        .frame(height: 44)
     }
 }
