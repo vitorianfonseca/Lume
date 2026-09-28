@@ -90,6 +90,30 @@ struct RaizView: View {
         .fullScreenCover(isPresented: mostrarBoasVindas) {
             BoasVindasView { viuBoasVindas = true }
         }
+        .onOpenURL { abrir($0) }
+    }
+
+    /// As ligações do widget e do Centro de Controlo: lume://registar/voz,
+    /// lume://movimentos, lume://planear, lume://resumo.
+    private func abrir(_ url: URL) {
+        guard url.scheme == "lume" else { return }
+        let destino = url.host() ?? ""
+        let detalhe = url.pathComponents.last
+
+        withAnimation(.snappy) {
+            switch destino {
+            case "registar":
+                modoDeRegisto = switch detalhe {
+                case "voz": .voz
+                case "talao": .talao
+                default: .texto
+                }
+                separador = .registar
+            case "movimentos": separador = .movimentos
+            case "planear": separador = .planear
+            default: separador = .resumo
+            }
+        }
     }
 
     private var mostrarBoasVindas: Binding<Bool> {

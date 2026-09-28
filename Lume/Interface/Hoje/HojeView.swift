@@ -95,13 +95,11 @@ struct HojeView: View {
     /// O widget do ecrã inicial mostra os mesmos números — publicados aqui.
     private func publicarParaOWidget() {
         guard case .calculado(let dia) = resultado else { return }
-        PartilhaComWidget.publicar(.init(
-            disponivelDoMes: dia.disponivelDoMes,
-            porDia: porDia(de: dia),
-            diasRestantes: dia.diasRestantes,
-            gastoDoMes: gastoDoMes,
-            rendimento: rendimentoDoMes,
-            atualizadoEm: .now
+        PartilhaComWidget.publicar(PartilhaComWidget.retrato(
+            dia: dia,
+            transacoes: transacoes,
+            categorias: categorias,
+            rendimento: rendimentoDoMes
         ))
     }
 

@@ -1,16 +1,13 @@
-//
-//  LumeWidgetBundle.swift
-//  LumeWidget
-//
-//  Created by Vitoria Fonseca on 26/09/2026.
-//
-
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 @main
 struct LumeWidgetBundle: WidgetBundle {
     var body: some Widget {
-        LumeWidget()
+        WidgetDoMes()
+        WidgetDosLimites()
+        if #available(iOS 18.0, *) {
+            ControloDeRegisto()
+        }
     }
 }
