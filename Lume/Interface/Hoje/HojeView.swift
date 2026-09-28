@@ -44,6 +44,8 @@ struct HojeView: View {
         }
         .background(Tema.fundo)
         .animation(.snappy, value: resultado)
+        .onAppear { publicarParaOWidget() }
+        .onChange(of: resultado) { publicarParaOWidget() }
         .sheet(item: $transacaoEmEdicao) { transacao in
             CartaoDeConfirmacaoView(
                 proposta: PropostaDeTransacao(de: transacao),
@@ -88,6 +90,19 @@ struct HojeView: View {
     private var cabecalho: some View {
         // "QUINTA-FEIRA, 24 SETEMBRO", exatamente como no Figma (sem "de").
         CabecalhoDeEcra(legenda: dataDoCabecalho, titulo: "O teu mês")
+    }
+
+    /// O widget do ecrã inicial mostra os mesmos números — publicados aqui.
+    private func publicarParaOWidget() {
+        guard case .calculado(let dia) = resultado else { return }
+        PartilhaComWidget.publicar(.init(
+            disponivelDoMes: dia.disponivelDoMes,
+            porDia: porDia(de: dia),
+            diasRestantes: dia.diasRestantes,
+            gastoDoMes: gastoDoMes,
+            rendimento: rendimentoDoMes,
+            atualizadoEm: .now
+        ))
     }
 
     // MARK: - Cartão do mês

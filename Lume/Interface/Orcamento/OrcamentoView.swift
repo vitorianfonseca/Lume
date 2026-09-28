@@ -170,6 +170,95 @@ struct OrcamentoView: View {
                 }
             }
         }
+
+        insights
+    }
+
+    // MARK: - Insights (contas feitas pela app, sem IA)
+
+    /// Gasto do mês passado até ao mesmo dia — comparação justa.
+    private var gastoDoMesPassadoAteHoje: Decimal {
+        let calendario = Calendar.current
+        guard let mesPassado = calendario.date(byAdding: .month, value: -1, to: .now) else { return .zero }
+        let diaDeHoje = calendario.component(.day, from: .now)
+        return transacoes
+            .filter {
+                $0.tipo == .despesa
+                    && calendario.isDate($0.data, equalTo: mesPassado, toGranularity: .month)
+                    && calendario.component(.day, from: $0.data) <= diaDeHoje
+            }
+            .reduce(.zero) { $0 + $1.valor }
+    }
+
+    /// A categoria que mais cresceu face ao mês passado (mesmo dia a dia).
+    private var categoriaQueMaisCresce: (nome: String, diferenca: Decimal)? {
+        let calendario = Calendar.current
+        guard let mesPassado = calendario.date(byAdding: .month, value: -1, to: .now) else { return nil }
+        let diaDeHoje = calendario.component(.day, from: .now)
+
+        let crescimentos = categorias.compactMap { categoria -> (String, Decimal)? in
+            let agora = gastoDoMes(em: categoria)
+            let antes = transacoes
+                .filter {
+                    $0.tipo == .despesa
+                        && $0.categoria?.persistentModelID == categoria.persistentModelID
+                        && calendario.isDate($0.data, equalTo: mesPassado, toGranularity: .month)
+                        && calendario.component(.day, from: $0.data) <= diaDeHoje
+                }
+                .reduce(Decimal.zero) { $0 + $1.valor }
+            let diferenca = agora - antes
+            return diferenca > .zero ? (categoria.nome, diferenca) : nil
+        }
+        guard let maior = crescimentos.max(by: { $0.1 < $1.1 }) else { return nil }
+        return (maior.0, maior.1)
+    }
+
+    /// Média diária dos últimos 7 dias.
+    private var mediaDosUltimosSeteDias: Decimal {
+        let calendario = Calendar.current
+        guard let inicio = calendario.date(byAdding: .day, value: -6, to: calendario.startOfDay(for: .now)) else { return .zero }
+        let total = transacoes
+            .filter { $0.tipo == .despesa && $0.data >= inicio }
+            .reduce(Decimal.zero) { $0 + $1.valor }
+        return (total / 7).arredondadoACentimos()
+    }
+
+    /// O cartão de tendências: comparações deterministas, no tom da Lume.
+    @ViewBuilder
+    private var insights: some View {
+        let atual = gastoDoMesTotal
+        let passado = gastoDoMesPassadoAteHoje
+
+        if passado > .zero || atual > .zero {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("TENDÊNCIAS")
+                    .font(Tema.fonte(11, .semibold))
+                    .foregroundStyle(Tema.douradoEscuro)
+
+                if passado > .zero {
+                    let diferenca = atual - passado
+                    Text(diferenca <= .zero
+                        ? "Levas menos \(FormatadorDeMoeda.textoSimples(-diferenca)) € do que no mês passado por esta altura."
+                        : "Levas mais \(FormatadorDeMoeda.textoSimples(diferenca)) € do que no mês passado por esta altura.")
+                        .font(Tema.fonte(13))
+                        .foregroundStyle(diferenca <= .zero ? Tema.positivo : Tema.tinta)
+                }
+
+                if let crescimento = categoriaQueMaisCresce {
+                    Text("\(crescimento.nome) é onde mais cresces: +\(FormatadorDeMoeda.textoSimples(crescimento.diferenca)) €.")
+                        .font(Tema.fonte(13))
+                        .foregroundStyle(Tema.tintaSuave)
+                }
+
+                Text("Nos últimos 7 dias gastaste em média \(FormatadorDeMoeda.texto(mediaDosUltimosSeteDias)) por dia.")
+                    .font(Tema.fonte(13))
+                    .foregroundStyle(Tema.tintaSuave)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .background(Tema.bege, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+            .accessibilityElement(children: .combine)
+        }
     }
 
     private var fracaoUtilizada: Double {

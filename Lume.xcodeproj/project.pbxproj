@@ -6,6 +6,12 @@
 	objectVersion = 110;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B3495A9D3067CF9B0020D159 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B3495A9C3067CF9B0020D159 /* WidgetKit.framework */; };
+		B3495A9F3067CF9B0020D159 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B3495A9E3067CF9B0020D159 /* SwiftUI.framework */; };
+		B3495AAA3067CF9E0020D159 /* LumeWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B3495A9A3067CF9B0020D159 /* LumeWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		B3495A2F3063F0210020D159 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -14,11 +20,34 @@
 			remoteGlobalIDString = B3495A183063EF4B0020D159;
 			remoteInfo = Lume;
 		};
+		B3495AA83067CF9E0020D159 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B3495A113063EF4B0020D159 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B3495A993067CF9B0020D159;
+			remoteInfo = LumeWidgetExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B3495AAF3067CF9E0020D159 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = "";
+			dstSubfolder = PlugIns;
+			files = (
+				B3495AAA3067CF9E0020D159 /* LumeWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		B3495A193063EF4B0020D159 /* Lume.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lume.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B3495A2B3063F0210020D159 /* LumeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LumeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B3495A9A3067CF9B0020D159 /* LumeWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LumeWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B3495A9C3067CF9B0020D159 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = /System/Library/Frameworks/WidgetKit.framework; sourceTree = "<absolute>"; };
+		B3495A9E3067CF9B0020D159 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = /System/Library/Frameworks/SwiftUI.framework; sourceTree = "<absolute>"; };
+		B3495AB03067CFAD0020D159 /* LumeWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LumeWidgetExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -28,6 +57,13 @@
 				Info.plist,
 			);
 			target = B3495A183063EF4B0020D159 /* Lume */;
+		};
+		B3495AAE3067CF9E0020D159 /* Exceptions for "LumeWidget" folder in "LumeWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B3495A993067CF9B0020D159 /* LumeWidgetExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -45,6 +81,14 @@
 			path = LumeTests;
 			sourceTree = "<group>";
 		};
+		B3495AA03067CF9B0020D159 /* LumeWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B3495AAE3067CF9E0020D159 /* Exceptions for "LumeWidget" folder in "LumeWidgetExtension" target */,
+			);
+			path = LumeWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,14 +102,24 @@
 			files = (
 			);
 		};
+		B3495A973067CF9B0020D159 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				B3495A9F3067CF9B0020D159 /* SwiftUI.framework in Frameworks */,
+				B3495A9D3067CF9B0020D159 /* WidgetKit.framework in Frameworks */,
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		B3495A103063EF4B0020D159 = {
 			isa = PBXGroup;
 			children = (
+				B3495AB03067CFAD0020D159 /* LumeWidgetExtension.entitlements */,
 				B3495A1B3063EF4B0020D159 /* Lume */,
 				B3495A2C3063F0210020D159 /* LumeTests */,
+				B3495AA03067CF9B0020D159 /* LumeWidget */,
+				B3495A9B3067CF9B0020D159 /* Frameworks */,
 				B3495A1A3063EF4B0020D159 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -75,8 +129,18 @@
 			children = (
 				B3495A193063EF4B0020D159 /* Lume.app */,
 				B3495A2B3063F0210020D159 /* LumeTests.xctest */,
+				B3495A9A3067CF9B0020D159 /* LumeWidgetExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		B3495A9B3067CF9B0020D159 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				B3495A9C3067CF9B0020D159 /* WidgetKit.framework */,
+				B3495A9E3067CF9B0020D159 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -89,8 +153,12 @@
 				B3495A153063EF4B0020D159 /* Sources */,
 				B3495A163063EF4B0020D159 /* Frameworks */,
 				B3495A173063EF4B0020D159 /* Resources */,
+				B3495AAF3067CF9E0020D159 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
+			);
+			dependencies = (
+				B3495AA93067CF9E0020D159 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				B3495A1B3063EF4B0020D159 /* Lume */,
@@ -121,6 +189,24 @@
 			productReference = B3495A2B3063F0210020D159 /* LumeTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		B3495A993067CF9B0020D159 /* LumeWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B3495AAB3067CF9E0020D159 /* Build configuration list for PBXNativeTarget "LumeWidgetExtension" */;
+			buildPhases = (
+				B3495A963067CF9B0020D159 /* Sources */,
+				B3495A973067CF9B0020D159 /* Frameworks */,
+				B3495A983067CF9B0020D159 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				B3495AA03067CF9B0020D159 /* LumeWidget */,
+			);
+			name = LumeWidgetExtension;
+			productName = LumeWidgetExtension;
+			productReference = B3495A9A3067CF9B0020D159 /* LumeWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -137,6 +223,9 @@
 					B3495A2A3063F0210020D159 = {
 						CreatedOnToolsVersion = 27.0;
 						TestTargetID = B3495A183063EF4B0020D159;
+					};
+					B3495A993067CF9B0020D159 = {
+						CreatedOnToolsVersion = 27.0;
 					};
 				};
 			};
@@ -156,6 +245,7 @@
 			targets = (
 				B3495A183063EF4B0020D159 /* Lume */,
 				B3495A2A3063F0210020D159 /* LumeTests */,
+				B3495A993067CF9B0020D159 /* LumeWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -167,6 +257,11 @@
 			);
 		};
 		B3495A293063F0210020D159 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		B3495A983067CF9B0020D159 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -184,6 +279,11 @@
 			files = (
 			);
 		};
+		B3495A963067CF9B0020D159 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -191,6 +291,11 @@
 			isa = PBXTargetDependency;
 			target = B3495A183063EF4B0020D159 /* Lume */;
 			targetProxy = B3495A2F3063F0210020D159 /* PBXContainerItemProxy */;
+		};
+		B3495AA93067CF9E0020D159 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B3495A993067CF9B0020D159 /* LumeWidgetExtension */;
+			targetProxy = B3495AA83067CF9E0020D159 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -458,6 +563,92 @@
 			};
 			name = Release;
 		};
+		B3495AAC3067CF9E0020D159 /* Debug configuration for PBXNativeTarget "LumeWidgetExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = LumeWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8WHU7TFV85;
+				ENABLE_APP_SANDBOX = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LumeWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LumeWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aurea.lume.LumeWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 27.0;
+			};
+			name = Debug;
+		};
+		B3495AAD3067CF9E0020D159 /* Release configuration for PBXNativeTarget "LumeWidgetExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = LumeWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8WHU7TFV85;
+				ENABLE_APP_SANDBOX = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LumeWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LumeWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aurea.lume.LumeWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 27.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -482,6 +673,14 @@
 			buildConfigurations = (
 				B3495A323063F0210020D159 /* Debug configuration for PBXNativeTarget "LumeTests" */,
 				B3495A333063F0210020D159 /* Release configuration for PBXNativeTarget "LumeTests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		B3495AAB3067CF9E0020D159 /* Build configuration list for PBXNativeTarget "LumeWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B3495AAC3067CF9E0020D159 /* Debug configuration for PBXNativeTarget "LumeWidgetExtension" */,
+				B3495AAD3067CF9E0020D159 /* Release configuration for PBXNativeTarget "LumeWidgetExtension" */,
 			);
 			defaultConfigurationName = Release;
 		};
