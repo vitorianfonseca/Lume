@@ -17,7 +17,11 @@ struct RegistoRapidoView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
-                TextField("Gastei…", text: $viewModel.textoDeRegisto)
+                TextField(
+                    "Registo",
+                    text: $viewModel.textoDeRegisto,
+                    prompt: Text("Gastei 12,50 no almoço…").foregroundStyle(Tema.placeholder)
+                )
                     .textFieldStyle(.plain)
                     .font(Tema.fonte(16))
                     .submitLabel(.done)
@@ -66,8 +70,7 @@ struct RegistoRapidoView: View {
     }
 
     private var mensagemVisivel: String? {
-        if case .indisponivel(let motivo) = gravador.estado { return motivo }
-        return viewModel.mensagemDeErro
+        gravador.mensagem ?? viewModel.mensagemDeErro
     }
 
     // MARK: - Botões
@@ -97,25 +100,19 @@ struct RegistoRapidoView: View {
                 .foregroundStyle(gravador.aGravar ? Tema.dourado : Tema.tintaSuave)
                 .frame(width: 30, height: 30)
                 .contentTransition(.symbolEffect(.replace))
-                // A onda "respira" enquanto grava.
-                .symbolEffect(.variableColor.iterative, isActive: gravador.aGravar)
         }
         .accessibilityLabel(gravador.aGravar ? "Parar e registar o que disseste" : "Ditar despesa")
     }
 
     private var botaoDeEnviar: some View {
-        // Círculo dourado polido (com reflexo) e seta em preto fosco.
-        // Sempre dourado — esbatido enquanto não há texto.
+        // O botão principal da Lume em ponto pequeno: dourado de ação, e o
+        // cinzento único dos desativados enquanto não há texto.
         Button(action: interpretar) {
             Image(systemName: "arrow.up")
                 .font(Tema.fonte(15, .semibold))
-                // Preto fosco fixo: sobre o dourado, o contraste
-                // tem de se manter também no modo escuro.
-                .foregroundStyle(Color(hex: "38342E"))
                 .frame(width: 34, height: 34)
-                .background(Tema.douradoBotao, in: Circle())
-                .opacity(textoVazio ? 0.45 : 1)
         }
+        .buttonStyle(EstiloDeBotaoLume(estilo: .principal))
         .disabled(textoVazio)
         .accessibilityLabel("Interpretar e registar")
     }

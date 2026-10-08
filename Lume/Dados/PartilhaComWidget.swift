@@ -6,7 +6,7 @@ import WidgetKit
 /// O widget tem um espelho desta estrutura (mesmas chaves) — daí o `versao`,
 /// para uma app nova nunca partir um widget antigo.
 nonisolated enum PartilhaComWidget {
-    static let grupo = "group.com.aurea.lume"
+    static let grupo = "group.com.vitoriafonseca.lume"
     static let chave = "resumoDoDia"
 
     struct Limite: Codable {
@@ -23,7 +23,7 @@ nonisolated enum PartilhaComWidget {
     }
 
     struct Resumo: Codable {
-        var versao = 2
+        var versao = 3
         /// Números do mês.
         var disponivelDoMes: Decimal
         var porDia: Decimal
@@ -40,6 +40,9 @@ nonisolated enum PartilhaComWidget {
         var limites: [Limite]
         var movimentos: [Movimento]
         var atualizadoEm: Date
+        /// Perfil → Privacidade → "Esconder valores": o widget mostra só a
+        /// forma, nunca os números, no ecrã inicial e no bloqueado.
+        var valoresEscondidos: Bool = false
     }
 
     static func publicar(_ resumo: Resumo) {
@@ -76,13 +79,15 @@ extension PartilhaComWidget {
         transacoes: [Transacao],
         categorias: [Categoria],
         rendimento: Decimal,
+        valoresEscondidos: Bool = false,
         hoje: Date = .now
     ) -> Resumo {
         let calendario = Calendar.current
         let despesasDoMes = transacoes.filter {
             $0.tipo == .despesa && calendario.isDate($0.data, equalTo: hoje, toGranularity: .month)
         }
-        let gastoDoMes = despesasDoMes.reduce(Decimal.zero) { $0 + $1.valor }
+        // O gasto do mês é o da calculadora: o mesmo que o Resumo e o Planear mostram.
+        let gastoDoMes = dia.gastoDoMes
         let gastoDeHoje = despesasDoMes
             .filter { calendario.isDate($0.data, inSameDayAs: hoje) }
             .reduce(Decimal.zero) { $0 + $1.valor }
@@ -96,6 +101,9 @@ extension PartilhaComWidget {
                 .reduce(Decimal.zero) { $0 + $1.valor }
             return (corrida as NSDecimalNumber).doubleValue
         }
+        // O ponto de hoje é o gasto real do mês, como no gráfico da app.
+        var acumuladoAteHoje = acumulado
+        acumuladoAteHoje[acumuladoAteHoje.count - 1] = (gastoDoMes as NSDecimalNumber).doubleValue
 
         // Dentro do limite = abaixo do ritmo constante do orçamento.
         let diasNoMes = calendario.range(of: .day, in: .month, for: hoje)?.count ?? 30
@@ -130,20 +138,22 @@ extension PartilhaComWidget {
             }
 
         return Resumo(
-            disponivelDoMes: dia.disponivelDoMes,
-            porDia: dia.diasRestantes > 0
-                ? (dia.disponivelDoMes / Decimal(dia.diasRestantes)).arredondadoACentimos()
-                : dia.disponivelDoMes,
+            // Os nomes das chaves ficam (o widget lê-as assim); os valores são
+            // os reconciliados: rendimento = gasto + reservado + disponível.
+            disponivelDoMes: dia.disponivelAgora,
+            porDia: dia.porDia,
             diasRestantes: dia.diasRestantes,
             gastoDoMes: gastoDoMes,
             rendimento: rendimento,
             gastoDeHoje: gastoDeHoje,
-            disponivelHoje: dia.hojePodesGastar,
-            acumulado: acumulado,
+            // O número do dia do Resumo — o gasto de hoje já está descontado.
+            disponivelHoje: dia.porDia,
+            acumulado: acumuladoAteHoje,
             dentroDoLimite: dentroDoLimite,
             limites: Array(limites),
             movimentos: Array(movimentos),
-            atualizadoEm: .now
+            atualizadoEm: .now,
+            valoresEscondidos: valoresEscondidos
         )
     }
 }

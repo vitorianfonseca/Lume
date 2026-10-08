@@ -93,23 +93,49 @@ nonisolated struct InterpretadorPorRegras: InterpretadorDeDespesas {
     /// Palavras-chave → nome canónico de categoria. Só é devolvido um nome
     /// que exista mesmo na lista de categorias do utilizador.
     private static let palavrasPorCategoria: [(palavras: [String], categoria: String)] = [
-        (["almoço", "jantar", "café", "pequeno-almoço", "lanche", "restaurante", "pastelaria", "uber eats", "glovo"], "Restauração"),
-        (["pingo doce", "continente", "lidl", "aldi", "auchan", "intermarché", "mercadona", "supermercado", "mercearia", "compras"], "Supermercado"),
-        (["uber", "bolt", "táxi", "taxi", "gasolina", "gasóleo", "combustível", "galp", "passe", "navegante", "metro", "comboio", "autocarro"], "Transportes"),
-        (["renda", "edp", "água", "luz", "gás", "condomínio", "internet", "meo", "vodafone"], "Casa"),
-        (["netflix", "spotify", "hbo", "disney", "icloud", "subscrição"], "Subscrições"),
-        (["farmácia", "farmacia", "médico", "medico", "dentista", "consulta"], "Saúde"),
-        (["cinema", "concerto", "bilhete", "livro"], "Lazer"),
+        (["almoço", "almoco", "jantar", "café", "cafe", "bica", "galão", "pastel", "pequeno-almoço", "lanche",
+          "restaurante", "pastelaria", "padaria", "pizza", "sushi", "hambúrguer", "hamburguer", "mcdonald",
+          "burger", "kfc", "cerveja", "time out", "uber eats", "glovo", "bolt food"], "Restauração"),
+        (["pingo doce", "continente", "lidl", "aldi", "auchan", "intermarché", "intermarche", "mercadona",
+          "minipreço", "supermercado", "mercearia", "mercado", "frutaria", "talho", "compras"], "Supermercado"),
+        (["uber", "bolt", "táxi", "taxi", "gasolina", "gasóleo", "combustível", "galp", "repsol",
+          "passe", "navegante", "metro", "comboio", "autocarro", "carris", "portagem", "via verde",
+          "estacionamento", "parque"], "Transportes"),
+        (["renda", "edp", "água", "luz", "gás", "condomínio", "internet", "meo", "vodafone", "nos ",
+          "ikea", "leroy", "limpeza"], "Casa"),
+        (["netflix", "spotify", "hbo", "disney", "icloud", "prime video", "youtube premium",
+          "chatgpt", "subscrição", "assinatura", "mensalidade"], "Subscrições"),
+        (["farmácia", "farmacia", "médico", "medico", "dentista", "consulta", "hospital", "clínica",
+          "clinica", "análises", "óculos", "ginásio", "ginasio"], "Saúde"),
+        (["cinema", "concerto", "bilhete", "livro", "teatro", "museu", "festival", "jogo", "steam",
+          "playstation", "fnac"], "Lazer"),
+        (["roupa", "zara", "h&m", "primark", "bershka", "mango", "sapatos", "ténis", "tenis",
+          "calças", "camisola", "casaco", "vestido"], "Roupa"),
     ]
 
+    /// Sugere uma categoria para um texto livre (frase, loja ou descrição),
+    /// só por palavras-chave. Usado também como recurso quando o modelo de
+    /// linguagem não escolhe categoria, e para os talões.
+    static func sugerirCategoria(para texto: String, entre categorias: [String]) -> String? {
+        extrairCategoria(de: texto.lowercased(), entre: categorias)
+    }
+
     private static func extrairCategoria(de texto: String, entre categorias: [String]) -> String? {
-        // O nome exato de uma categoria do utilizador tem prioridade sobre as heurísticas.
-        if let direta = categorias.first(where: { texto.contains($0.lowercased()) }) {
+        // O nome exato de uma categoria do utilizador tem prioridade sobre as
+        // heurísticas, mas só como palavra inteira: "casaco" não é "Casa".
+        let palavras = " " + String(texto.map { $0.isLetter ? $0 : " " }) + " "
+        if let direta = categorias.first(where: { palavras.contains(" \($0.lowercased()) ") }) {
             return direta
         }
+        // Se a categoria da primeira palavra-chave não existir na lista do
+        // utilizador, continua-se à procura nas seguintes.
         for (palavras, categoria) in palavrasPorCategoria
         where palavras.contains(where: texto.contains) {
-            return categorias.first { $0.compare(categoria, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }
+            if let existente = categorias.first(where: {
+                $0.compare(categoria, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+            }) {
+                return existente
+            }
         }
         return nil
     }

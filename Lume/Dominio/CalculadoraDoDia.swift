@@ -41,6 +41,18 @@ nonisolated enum CalculadoraDoDia {
         var gastoHoje: Decimal
         /// Dias até ao fim do mês, incluindo hoje.
         var diasRestantes: Int
+
+        // A conta que se mostra em todos os ecrãs, e que bate sempre certo:
+        // rendimento = gasto do mês + reservado + disponível agora.
+
+        /// Todas as despesas do mês, contas fixas pagas e hoje incluídos.
+        var gastoDoMes: Decimal = .zero
+        /// Poupança planeada + contas fixas ainda por pagar este mês.
+        var reservado: Decimal = .zero
+        /// O que sobra depois de tudo o que já se gastou e do reservado.
+        var disponivelAgora: Decimal = .zero
+        /// `disponivelAgora` repartido pelos dias que faltam (hoje incluído).
+        var porDia: Decimal = .zero
     }
 
     enum Resultado: Equatable {
@@ -79,11 +91,26 @@ nonisolated enum CalculadoraDoDia {
 
         let porDia = (disponivelDoMes / Decimal(diasRestantes)).arredondadoACentimos()
 
+        // A conta visível: tudo o que saiu este mês, mais o que está
+        // reservado (poupança e contas fixas que ainda não foram pagas).
+        let doMes = entrada.despesasDoMes.filter {
+            calendario.isDate($0.data, equalTo: entrada.hoje, toGranularity: .month)
+        }
+        let gastoDoMes = doMes.reduce(Decimal.zero) { $0 + $1.valor }
+        let pagoEmFixas = doMes.filter(\.ehPagamentoDeRecorrente).reduce(Decimal.zero) { $0 + $1.valor }
+        let fixasPorPagar = max(totalRecorrentes - pagoEmFixas, .zero)
+        let reservado = entrada.poupancaPlaneada + fixasPorPagar
+        let disponivelAgora = rendimento - gastoDoMes - reservado
+
         return .calculado(Dia(
             disponivelDoMes: disponivelDoMes,
             hojePodesGastar: porDia - gastoHoje,
             gastoHoje: gastoHoje,
-            diasRestantes: diasRestantes
+            diasRestantes: diasRestantes,
+            gastoDoMes: gastoDoMes,
+            reservado: reservado,
+            disponivelAgora: disponivelAgora,
+            porDia: (disponivelAgora / Decimal(diasRestantes)).arredondadoACentimos()
         ))
     }
 }

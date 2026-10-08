@@ -5,9 +5,13 @@ import UserNotifications
 /// Os primeiros passos do Figma: boas-vindas, entrada opcional e uma
 /// configuração curta em três passos. Sem servidor, a "conta" é o espaço
 /// local + iCloud — os ecrãs de entrada guardam apenas o nome e o email.
+///
+/// Regras de todos os passos: conteúdo em cima (ou centrado, nos ecrãs de
+/// marca), a ação principal ancorada em baixo com as secundárias em texto
+/// por baixo, e voltar a partir do segundo ecrã.
 struct BoasVindasView: View {
     private enum Passo {
-        case bemVinda, entrar, criarConta, recuperar
+        case boasVindas, entrar, criarConta, recuperar
         case ritmo, limite, notificacoes, pronto
     }
 
@@ -18,7 +22,12 @@ struct BoasVindasView: View {
 
     let aoComecar: () -> Void
 
-    @State private var passo = Passo.bemVinda
+    @State private var passo = Passo.boasVindas
+    /// Os passos por onde se passou, para o voltar regressar ao certo.
+    @State private var historico: [Passo] = []
+    /// Para onde desliza o passo seguinte (avançar entra pela direita).
+    @State private var aAvancar = true
+
     @AppStorage("nomeDePerfil") private var nomeDePerfil = "O teu nome"
     @AppStorage("emailDeConta") private var emailDeConta = ""
 
@@ -29,54 +38,99 @@ struct BoasVindasView: View {
     @State private var orcamento = Decimal.zero
     @State private var recuperacaoPedida = false
 
-    private var moeda: Decimal.FormatStyle.Currency {
-        .currency(code: "EUR").locale(FormatadorDeMoeda.localidade)
-    }
-
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                cabecalho
-
-                // Cada passo entra a deslizar da direita, como uma navegação.
-                Group {
-                    switch passo {
-                    case .bemVinda: bemVinda
-                    case .entrar: entrar
-                    case .criarConta: criarConta
-                    case .recuperar: recuperar
-                    case .ritmo: ritmo
-                    case .limite: limite
-                    case .notificacoes: notificacoes
-                    case .pronto: pronto
-                    }
+        VStack(spacing: 0) {
+            // No fim, o voltar fica no topo (o conteúdo está centrado).
+            if passo == .pronto {
+                HStack {
+                    BotaoRedondo(simbolo: "chevron.left", rotulo: "Voltar", acao: voltar)
+                    Spacer()
                 }
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .opacity
-                ))
+                .padding(.horizontal, Tema.margemDoEcra)
+                .padding(.top, 4)
             }
-            .padding(.horizontal, Tema.margemDoEcra)
-            .padding(.top, 18)
-            .padding(.bottom, 24)
-            .animation(.snappy, value: passo)
+
+            GeometryReader { geometria in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        if passo != .boasVindas && passo != .pronto {
+                            cabecalho
+                        }
+                        conteudo
+                    }
+                    .padding(.horizontal, Tema.margemDoEcra)
+                    .padding(.top, 4)
+                    .padding(.bottom, 24)
+                    // Os ecrãs de marca ficam centrados na vertical;
+                    // os formulários começam em cima, junto ao cabeçalho.
+                    .frame(
+                        maxWidth: .infinity,
+                        minHeight: geometria.size.height,
+                        alignment: ecraDeMarca ? .center : .top
+                    )
+                    .id(passo)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: aAvancar ? .trailing : .leading).combined(with: .opacity),
+                        removal: .opacity
+                    ))
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .scrollDismissesKeyboard(.interactively)
+            }
+
+            rodape
+                .padding(.horizontal, Tema.margemDoEcra)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
         }
         .background(Tema.fundo)
-        .scrollDismissesKeyboard(.interactively)
+    }
+
+    private var ecraDeMarca: Bool { passo == .boasVindas || passo == .pronto }
+
+    @ViewBuilder
+    private var conteudo: some View {
+        switch passo {
+        case .boasVindas: boasVindas
+        case .entrar: entrar
+        case .criarConta: criarConta
+        case .recuperar: recuperar
+        case .ritmo: ritmo
+        case .limite: limite
+        case .notificacoes: notificacoes
+        case .pronto: pronto
+        }
+    }
+
+    // MARK: - Navegação
+
+    private func ir(para destino: Passo) {
+        aAvancar = true
+        withAnimation(.snappy(duration: 0.3)) {
+            historico.append(passo)
+            passo = destino
+        }
+    }
+
+    private func voltar() {
+        aAvancar = false
+        withAnimation(.snappy(duration: 0.3)) {
+            passo = historico.popLast() ?? .boasVindas
+        }
     }
 
     // MARK: - Peças comuns
 
     private var legendaDoPasso: (String, String) {
         switch passo {
-        case .bemVinda: ("O TEU DINHEIRO, COM CLAREZA", "Bem-vinda ao Lume")
-        case .entrar: ("ENTRAR NO LUME", "É bom ter-te de volta")
-        case .criarConta: ("CRIAR CONTA", "Cria o teu espaço")
-        case .recuperar: ("SEM COMPLICAÇÕES", "Recuperar acesso")
-        case .ritmo: ("PASSO 1 DE 3", "Ao teu ritmo")
-        case .limite: ("PASSO 2 DE 3", "Um limite confortável")
-        case .notificacoes: ("PASSO 3 DE 3", "Só o que importa")
-        case .pronto: ("O TEU ESPAÇO ESTÁ PRONTO", "Tudo pronto, \(nomeParaSaudacao)")
+        case .boasVindas: ("Boas-vindas à Lume", "Menos contas na cabeça. Mais espaço para viver.")
+        case .entrar: ("Entrar", "É bom ter-te de volta")
+        case .criarConta: ("Criar conta", "Cria o teu espaço")
+        case .recuperar: ("Palavra-passe", "Recuperar acesso")
+        case .ritmo: ("Passo 1 de 3", "Ao teu ritmo")
+        case .limite: ("Passo 2 de 3", "Um limite confortável")
+        case .notificacoes: ("Passo 3 de 3", "Só o que importa")
+        case .pronto: ("O teu espaço está pronto", "Tudo pronto, \(nomeParaSaudacao)")
         }
     }
 
@@ -87,8 +141,8 @@ struct BoasVindasView: View {
     }
 
     private var cabecalho: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            CabecalhoDeEcra(legenda: legendaDoPasso.0, titulo: legendaDoPasso.1)
+        VStack(alignment: .leading, spacing: 14) {
+            CabecalhoDeEcra(legenda: legendaDoPasso.0, titulo: legendaDoPasso.1, aoVoltar: voltar)
             if let indice = indiceDoPasso {
                 // As três barrinhas de progresso dos passos.
                 HStack(spacing: 6) {
@@ -112,35 +166,82 @@ struct BoasVindasView: View {
         }
     }
 
-    private func botao(_ titulo: String, ativo: Bool = true, acao: @escaping () -> Void) -> some View {
-        Button(action: acao) {
-            Text(titulo)
-                .font(Tema.fonte(15, .semibold))
-                .foregroundStyle(Color(hex: "302B24"))
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
+    /// O rodapé fixo: a ação principal (um só dourado) e, por baixo, as
+    /// alternativas discretas em texto.
+    @ViewBuilder
+    private var rodape: some View {
+        VStack(spacing: 2) {
+            switch passo {
+            case .boasVindas:
+                BotaoLume(titulo: "Começar") { ir(para: .ritmo) }
+                alternativa("Já tenho conta") { ir(para: .entrar) }
+
+            case .entrar:
+                BotaoLume(titulo: "Entrar") {
+                    emailDeConta = email
+                    ir(para: .ritmo)
+                }
+                .disabled(email.isEmpty)
+                alternativa("Continuar sem conta") { ir(para: .ritmo) }
+
+            case .criarConta:
+                BotaoLume(titulo: "Criar conta") {
+                    emailDeConta = email
+                    ir(para: .ritmo)
+                }
+                .disabled(nome.isEmpty || email.isEmpty)
+                alternativa("Prefiro começar sem conta") { ir(para: .ritmo) }
+
+            case .recuperar:
+                BotaoLume(titulo: "Pedir ligação de recuperação") {
+                    recuperacaoPedida = true
+                }
+                .disabled(email.isEmpty)
+                alternativa("Voltar a entrar") { voltar() }
+
+            case .ritmo:
+                BotaoLume(titulo: "Continuar") {
+                    aplicarRitmo()
+                    ir(para: .limite)
+                }
+                alternativa("Configurar mais tarde") { concluir() }
+
+            case .limite:
+                BotaoLume(titulo: "Guardar e continuar") {
+                    aplicarLimite()
+                    ir(para: .notificacoes)
+                }
+                alternativa("Saltar por agora") { ir(para: .notificacoes) }
+
+            case .notificacoes:
+                BotaoLume(titulo: "Ativar notificações") {
+                    Task {
+                        _ = try? await UNUserNotificationCenter.current()
+                            .requestAuthorization(options: [.alert, .badge, .sound])
+                        ir(para: .pronto)
+                    }
+                }
+                alternativa("Agora não") { ir(para: .pronto) }
+
+            case .pronto:
+                BotaoLume(titulo: "Entrar na minha Lume") { concluir() }
+            }
         }
-        .buttonStyle(EscalaAoTocar())
-        .disabled(!ativo)
     }
 
-    private func ligacao(_ titulo: String, acao: @escaping () -> Void) -> some View {
-        Button(titulo, action: acao)
-            .font(Tema.fonte(13, .medium))
-            .foregroundStyle(Tema.douradoEscuro)
+    private func alternativa(_ titulo: String, acao: @escaping () -> Void) -> some View {
+        BotaoLume(titulo: titulo, estilo: .texto, acao: acao)
             .frame(maxWidth: .infinity)
     }
 
     private func campo(_ legenda: String, @ViewBuilder conteudo: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(legenda)
-                .font(Tema.fonte(11))
-                .foregroundStyle(Tema.tintaSuave)
+            Legenda(legenda)
             conteudo()
                 .font(Tema.fonte(15))
                 .foregroundStyle(Tema.tinta)
                 .padding(.horizontal, 14)
-                .padding(.vertical, 10)
+                .frame(minHeight: 46)
                 .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
                 .overlay(
                     RoundedRectangle(cornerRadius: Tema.Raio.campo)
@@ -149,74 +250,118 @@ struct BoasVindasView: View {
         }
     }
 
-    private func cartaoAreia(simbolo: String, titulo: String, texto: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: simbolo)
-                .font(Tema.fonte(21, .medium))
-                .foregroundStyle(Tema.douradoEscuro)
-            Text(titulo)
-                .font(Tema.fonte(15, .semibold))
-                .foregroundStyle(Tema.tinta)
-            Text(texto)
-                .font(Tema.fonte(12))
-                .foregroundStyle(Tema.tintaSuave)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+    /// O texto de exemplo dos campos, em cinzento legível (≥3,5:1).
+    private func exemplo(_ texto: String) -> Text {
+        Text(texto).foregroundStyle(Tema.placeholder)
     }
 
-    // MARK: - 01 Bem-vinda
+    private func campoDeEmail() -> some View {
+        campo("Email") {
+            TextField("Email", text: $email, prompt: exemplo("nome@exemplo.pt"))
+                .keyboardType(.emailAddress)
+                .textContentType(.emailAddress)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+        }
+    }
 
-    @ViewBuilder
-    private var bemVinda: some View {
-        Image("SimboloLume")
+    /// Ícone 3D da Lume (os renders "Ilustracao3D-…"), para coisas.
+    private func icone3D(_ tipo: Ilustracao.Tipo, lado: CGFloat) -> some View {
+        Image(tipo.imagem)
             .resizable()
+            .interpolation(.high)
             .scaledToFit()
-            .frame(width: 120, height: 120)
-            .shadow(color: Tema.dourado.opacity(0.35), radius: 24, y: 10)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-
-        Text("Menos contas na cabeça.\nMais espaço para viver.")
-            .font(Tema.fonte(22, .semibold))
-            .foregroundStyle(Tema.tinta)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-
-        VStack(alignment: .leading, spacing: 14) {
-            vantagem(nil, "Regista como te der jeito", "Escreve, fala ou fotografa um talão.")
-            vantagem("creditcard", "Percebe para onde vai", "Movimentos e orçamentos num só lugar.")
-            vantagem("lock", "O teu espaço, privado", "Podes começar sem criar uma conta.")
-        }
-        .padding(.vertical, 8)
-
-        botao("Começar") { passo = .ritmo }
-        ligacao("Já tenho conta · Entrar") { passo = .entrar }
+            .frame(width: lado, height: lado)
+            .accessibilityHidden(true)
     }
 
-    private func vantagem(_ simbolo: String?, _ titulo: String, _ texto: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Group {
-                if let simbolo {
-                    Image(systemName: simbolo)
-                        .font(Tema.fonte(13))
-                } else {
-                    IconeDeTexto(tamanho: 13)
-                }
+    /// Cartão de destaque (o único olive da app) com um ícone 3D ou de linha.
+    private func cartaoDeDestaque(
+        ilustracao: Ilustracao.Tipo? = nil,
+        simbolo: String? = nil,
+        titulo: String,
+        texto: String
+    ) -> some View {
+        HStack(alignment: .center, spacing: 14) {
+            if let ilustracao {
+                icone3D(ilustracao, lado: 48)
+            } else if let simbolo {
+                Image(systemName: simbolo)
+                    .font(.system(size: 20, weight: .medium))
+                    .textoDourado()
+                    .frame(width: 48, height: 48)
+                    .accessibilityHidden(true)
             }
-            .foregroundStyle(Tema.douradoEscuro)
-            .frame(width: 20)
-            .padding(.top, 2)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(titulo)
                     .font(Tema.fonte(15, .semibold))
                     .foregroundStyle(Tema.tinta)
                 Text(texto)
                     .font(Tema.fonte(12))
                     .foregroundStyle(Tema.tintaSuave)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .cartaoCafe()
+    }
+
+    private func nota(_ texto: String, cor: Color = Tema.tintaSuave) -> some View {
+        Text(texto)
+            .font(Tema.fonte(12))
+            .foregroundStyle(cor)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - 01 Boas-vindas
+
+    /// Hierarquia: logo grande → legenda "Boas-vindas à Lume" → o tagline
+    /// como título. A marca aparece uma vez só.
+    @ViewBuilder
+    private var boasVindas: some View {
+        VStack(spacing: 12) {
+            Image("SimboloLume")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 132, height: 132)
+                .shadow(color: Tema.dourado.opacity(0.3), radius: 22, y: 10)
+                .padding(.bottom, 12)
+                .accessibilityHidden(true)
+
+            Legenda(legendaDoPasso.0)
+
+            Text("Menos contas na cabeça.\nMais espaço para viver.")
+                .font(Tema.fonte(28, .semibold))
+                .foregroundStyle(Tema.tinta)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+        }
+        .frame(maxWidth: .infinity)
+
+        VStack(alignment: .leading, spacing: 16) {
+            vantagem(.balao, "Escreve como falas", "Ou fala, ou fotografa um talão.")
+            vantagem(.cartoes, "Percebe para onde vai", "Movimentos, contas e limites num só lugar.")
+            vantagem(.cadeado, "O teu espaço, privado", "Podes começar sem criar conta.")
+        }
+        .padding(.top, 16)
+    }
+
+    private func vantagem(_ ilustracao: Ilustracao.Tipo, _ titulo: String, _ texto: String) -> some View {
+        HStack(spacing: 14) {
+            icone3D(ilustracao, lado: 52)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(titulo)
+                    .font(Tema.fonte(15, .semibold))
+                    .foregroundStyle(Tema.tinta)
+                Text(texto)
+                    .font(Tema.fonte(13))
+                    .foregroundStyle(Tema.tintaSuave)
             }
         }
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - 02 Entrar · 03 Criar conta · 04 Recuperar
@@ -227,31 +372,20 @@ struct BoasVindasView: View {
             .font(Tema.fonte(15))
             .foregroundStyle(Tema.tintaSuave)
 
-        campo("EMAIL") {
-            TextField("nome@exemplo.pt", text: $email)
-                .keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-        }
-        campo("PALAVRA-PASSE") {
-            SecureField("Introduz a tua palavra-passe", text: $palavraPasse)
+        campoDeEmail()
+        campo("Palavra-passe") {
+            SecureField("Palavra-passe", text: $palavraPasse, prompt: exemplo("Introduz a tua palavra-passe"))
+                .textContentType(.password)
         }
 
-        ligacao("Esqueci-me da palavra-passe") { passo = .recuperar }
-
-        botao("Entrar", ativo: !email.isEmpty) {
-            emailDeConta = email
-            passo = .ritmo
+        HStack {
+            BotaoLume(titulo: "Criar conta", estilo: .texto) { ir(para: .criarConta) }
+            Spacer()
+            BotaoLume(titulo: "Esqueci-me", estilo: .texto) { ir(para: .recuperar) }
+                .accessibilityLabel("Esqueci-me da palavra-passe")
         }
 
-        ligacao("Ainda não tens conta? Criar conta") { passo = .criarConta }
-        ligacao("Continuar sem conta") { passo = .ritmo }
-
-        Text("A entrada é opcional. Podes usar o Lume localmente e configurar a conta mais tarde.")
-            .font(Tema.fonte(12))
-            .foregroundStyle(Tema.tintaSuave)
-            .frame(maxWidth: .infinity)
-            .multilineTextAlignment(.center)
+        nota("A entrada é opcional. Podes usar a Lume localmente e configurar a conta mais tarde.")
     }
 
     @ViewBuilder
@@ -260,65 +394,40 @@ struct BoasVindasView: View {
             .font(Tema.fonte(15))
             .foregroundStyle(Tema.tintaSuave)
 
-        campo("NOME") {
-            TextField("Como te podemos chamar?", text: $nome)
+        campo("Nome") {
+            TextField("Nome", text: $nome, prompt: exemplo("Como te podemos chamar?"))
+                .textContentType(.givenName)
         }
-        campo("EMAIL") {
-            TextField("nome@exemplo.pt", text: $email)
-                .keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-        }
-        campo("PALAVRA-PASSE") {
-            SecureField("Cria uma palavra-passe", text: $palavraPasse)
-        }
-        Text("Usa pelo menos 12 caracteres.")
-            .font(Tema.fonte(12))
-            .foregroundStyle(Tema.tintaSuave)
-
-        botao("Criar conta", ativo: !nome.isEmpty && !email.isEmpty) {
-            emailDeConta = email
-            passo = .ritmo
+        campoDeEmail()
+        VStack(alignment: .leading, spacing: 6) {
+            campo("Palavra-passe") {
+                SecureField("Palavra-passe", text: $palavraPasse, prompt: exemplo("Cria uma palavra-passe"))
+                    .textContentType(.newPassword)
+            }
+            Text("Usa pelo menos 12 caracteres.")
+                .font(Tema.fonte(12))
+                .foregroundStyle(Tema.tintaSuave)
         }
 
-        ligacao("Já tenho conta · Entrar") { passo = .entrar }
-        ligacao("Prefiro começar sem conta") { passo = .ritmo }
-
-        Text("Ao criar conta, aceitas os Termos de utilização e a Política de privacidade.")
-            .font(Tema.fonte(12))
-            .foregroundStyle(Tema.tintaSuave)
-            .frame(maxWidth: .infinity)
-            .multilineTextAlignment(.center)
+        nota("Ao criar conta, aceitas os Termos de utilização e a Política de privacidade.")
     }
 
     @ViewBuilder
     private var recuperar: some View {
-        cartaoAreia(
-            simbolo: "lock",
+        cartaoDeDestaque(
+            ilustracao: .cadeado,
             titulo: "Vamos ajudar-te a voltar a entrar.",
             texto: "Indica o email associado à tua conta para pedires uma ligação de recuperação."
         )
 
-        campo("EMAIL") {
-            TextField("nome@exemplo.pt", text: $email)
-                .keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-        }
+        campoDeEmail()
 
-        botao("Pedir ligação de recuperação", ativo: !email.isEmpty) {
-            recuperacaoPedida = true
-        }
-
-        Text(recuperacaoPedida
-            ? "Pedido enviado. Verifica a tua caixa de entrada."
-            : "Se existir uma conta com este email, receberás as instruções na tua caixa de entrada.")
-            .font(Tema.fonte(12))
-            .foregroundStyle(recuperacaoPedida ? Tema.positivo : Tema.tintaSuave)
-            .frame(maxWidth: .infinity)
-            .multilineTextAlignment(.center)
-
-        ligacao("Voltar ao login") { passo = .entrar }
+        nota(
+            recuperacaoPedida
+                ? "Pedido enviado. Verifica a tua caixa de entrada."
+                : "Se existir uma conta com este email, receberás as instruções na tua caixa de entrada.",
+            cor: recuperacaoPedida ? Tema.positivo : Tema.tintaSuave
+        )
     }
 
     // MARK: - 05 Passo 1 · Ao teu ritmo
@@ -329,29 +438,24 @@ struct BoasVindasView: View {
             .font(Tema.fonte(15))
             .foregroundStyle(Tema.tintaSuave)
 
-        campo("COMO TE PODEMOS CHAMAR?") {
-            TextField("O teu nome", text: $nome)
+        campo("Como te podemos chamar?") {
+            TextField("Nome", text: $nome, prompt: exemplo("O teu nome"))
+                .textContentType(.givenName)
         }
-        campo("MOEDA PRINCIPAL") {
+        campo("Moeda principal") {
             Text("Euro · EUR")
                 .foregroundStyle(Tema.tintaSuave)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        campo("NOME DA PRIMEIRA CONTA") {
-            TextField("Conta principal", text: $nomeDaConta)
+        campo("Nome da primeira conta") {
+            TextField("Nome da conta", text: $nomeDaConta, prompt: exemplo("Conta principal"))
         }
 
-        cartaoAreia(
-            simbolo: "creditcard",
+        cartaoDeDestaque(
+            ilustracao: .cartoes,
             titulo: "Começa com o que já sabes.",
             texto: "Esta conta organiza os teus registos. Não precisas de ligar o teu banco."
         )
-
-        botao("Continuar") {
-            aplicarRitmo()
-            passo = .limite
-        }
-        ligacao("Configurar mais tarde") { concluir() }
     }
 
     private func aplicarRitmo() {
@@ -370,18 +474,18 @@ struct BoasVindasView: View {
 
     @ViewBuilder
     private var limite: some View {
-        Text("Quanto queres gastar por mês?")
-            .font(Tema.fonte(17, .semibold))
-            .foregroundStyle(Tema.tinta)
-        Text("Escolhe um valor para as tuas despesas. Podes ajustá-lo a qualquer momento.")
-            .font(Tema.fonte(13))
-            .foregroundStyle(Tema.tintaSuave)
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Quanto queres gastar por mês?")
+                .font(Tema.fonte(17, .semibold))
+                .foregroundStyle(Tema.tinta)
+            Text("Escolhe um valor para as tuas despesas. Podes ajustá-lo a qualquer momento.")
+                .font(Tema.fonte(13))
+                .foregroundStyle(Tema.tintaSuave)
+        }
 
         VStack(alignment: .leading, spacing: 8) {
-            Text("ORÇAMENTO MENSAL")
-                .font(Tema.fonte(11))
-                .foregroundStyle(Tema.douradoEscuro)
-            TextField("1 450,00 €", value: $orcamento, format: moeda)
+            Legenda("Orçamento mensal")
+            TextField("Orçamento mensal", value: $orcamento, format: .euros, prompt: exemplo("1 450,00 €"))
                 .keyboardType(.decimalPad)
                 .font(Tema.fonte(34, .semibold))
                 .monospacedDigit()
@@ -393,22 +497,14 @@ struct BoasVindasView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+        .cartaoCafe()
 
         if !categorias.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                Text("COMEÇAMOS COM")
-                    .font(Tema.fonte(11))
-                    .foregroundStyle(Tema.tintaSuave)
+                Legenda("Começamos com")
                 FluxoDeChips(nomes: categorias.map(\.nome))
             }
         }
-
-        botao("Guardar e continuar") {
-            aplicarLimite()
-            passo = .notificacoes
-        }
-        ligacao("Saltar por agora") { passo = .notificacoes }
     }
 
     private func aplicarLimite() {
@@ -430,98 +526,108 @@ struct BoasVindasView: View {
 
     @ViewBuilder
     private var notificacoes: some View {
-        cartaoAreia(
+        cartaoDeDestaque(
             simbolo: "bell",
             titulo: "Um lembrete na altura certa.",
             texto: "Recebe avisos quando estiveres perto de um limite e um resumo no fim da semana."
         )
 
-        VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Limites de orçamento")
-                    .font(Tema.fonte(15, .semibold))
-                    .foregroundStyle(Tema.tinta)
-                Text("Sabe quando uma categoria precisa de atenção.")
-                    .font(Tema.fonte(12))
-                    .foregroundStyle(Tema.tintaSuave)
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Resumo semanal")
-                    .font(Tema.fonte(15, .semibold))
-                    .foregroundStyle(Tema.tinta)
-                Text("Vê os teus gastos e o que ainda tens disponível.")
-                    .font(Tema.fonte(12))
-                    .foregroundStyle(Tema.tintaSuave)
-            }
+        VStack(alignment: .leading, spacing: 0) {
+            linhaDeNotificacao("Limites de orçamento", "Sabe quando uma categoria precisa de atenção.")
+            Divider().overlay(Tema.separador)
+            linhaDeNotificacao("Resumo semanal", "Vê os teus gastos e o que ainda tens disponível.")
         }
+        .padding(.horizontal, 18)
+        .cartao()
 
-        botao("Ativar notificações") {
-            Task {
-                _ = try? await UNUserNotificationCenter.current()
-                    .requestAuthorization(options: [.alert, .badge, .sound])
-                passo = .pronto
-            }
+        nota("Podes alterar esta escolha no Perfil.")
+    }
+
+    private func linhaDeNotificacao(_ titulo: String, _ texto: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(titulo)
+                .font(Tema.fonte(15, .semibold))
+                .foregroundStyle(Tema.tinta)
+            Text(texto)
+                .font(Tema.fonte(12))
+                .foregroundStyle(Tema.tintaSuave)
         }
-        ligacao("Agora não") { passo = .pronto }
-
-        Text("Podes alterar esta escolha nas definições.")
-            .font(Tema.fonte(12))
-            .foregroundStyle(Tema.tintaSuave)
-            .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 14)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - 08 Tudo pronto
 
+    /// Como as boas-vindas: logo → legenda → título, e o resumo por baixo.
     @ViewBuilder
     private var pronto: some View {
-        Image("SimboloLume")
-            .resizable()
-            .scaledToFit()
-            .frame(width: 110, height: 110)
-            .shadow(color: Tema.dourado.opacity(0.35), radius: 24, y: 10)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
+        VStack(spacing: 12) {
+            Image("SimboloLume")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 112, height: 112)
+                .shadow(color: Tema.dourado.opacity(0.3), radius: 22, y: 10)
+                .padding(.bottom, 8)
+                .accessibilityHidden(true)
 
-        Text("O primeiro passo\njá está dado.")
-            .font(Tema.fonte(22, .semibold))
-            .foregroundStyle(Tema.tinta)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
+            Legenda(legendaDoPasso.0)
 
-        VStack(spacing: 10) {
+            Text(legendaDoPasso.1)
+                .font(Tema.fonte(28, .semibold))
+                .foregroundStyle(Tema.tinta)
+                .multilineTextAlignment(.center)
+                .accessibilityAddTraits(.isHeader)
+
+            Text("O primeiro passo já está dado.")
+                .font(Tema.fonte(15))
+                .foregroundStyle(Tema.tintaSuave)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+
+        VStack(spacing: 0) {
             linhaDeResumo("Moeda", "Euro · EUR")
+            Divider().overlay(Tema.separador)
             linhaDeResumo("Conta", contas.first(where: \.principal)?.nome ?? nomeDaConta)
-            linhaDeResumo("Orçamento mensal", orcamento > .zero ? FormatadorDeMoeda.texto(orcamento) : "por definir")
+            Divider().overlay(Tema.separador)
+            linhaDeResumo("Orçamento mensal", orcamento > .zero ? FormatadorDeMoeda.texto(orcamento) : "Por definir")
+        }
+        .padding(.horizontal, 18)
+        .cartao()
+        .padding(.top, 8)
+
+        HStack(spacing: 14) {
+            icone3D(.balao, lado: 48)
+            VStack(alignment: .leading, spacing: 3) {
+                Legenda("Experimenta dizer")
+                Text("“Gastei 3,40 € no café.”")
+                    .font(Tema.fonte(15, .semibold))
+                    .foregroundStyle(Tema.tinta)
+                Text("A Lume ajuda-te a organizar o resto.")
+                    .font(Tema.fonte(12))
+                    .foregroundStyle(Tema.tintaSuave)
+            }
+            Spacer(minLength: 0)
         }
         .padding(16)
-        .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
-
-        botao("Entrar no meu Lume") { concluir() }
-
-        VStack(alignment: .leading, spacing: 4) {
-            Text("EXPERIMENTA DIZER")
-                .font(Tema.fonte(11))
-                .foregroundStyle(Tema.douradoEscuro)
-            Text("“Gastei 3,40 € no café.”")
-                .font(Tema.fonte(15, .semibold))
-                .foregroundStyle(Tema.tinta)
-            Text("O Lume ajuda-te a organizar o resto.")
-                .font(Tema.fonte(12))
-                .foregroundStyle(Tema.tintaSuave)
-        }
-        .padding(.top, 4)
+        .cartaoCafe()
+        .accessibilityElement(children: .combine)
     }
 
     private func linhaDeResumo(_ titulo: String, _ valor: String) -> some View {
         HStack {
             Text(titulo)
-                .font(Tema.fonte(13))
+                .font(Tema.fonte(14))
                 .foregroundStyle(Tema.tintaSuave)
             Spacer()
             Text(valor)
-                .font(Tema.fonte(13, .medium))
+                .font(Tema.fonte(14, .medium))
+                .monospacedDigit()
                 .foregroundStyle(Tema.tinta)
         }
+        .frame(minHeight: 44)
+        .accessibilityElement(children: .combine)
     }
 
     private func concluir() {

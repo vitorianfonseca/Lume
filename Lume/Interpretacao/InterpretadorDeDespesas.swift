@@ -10,6 +10,8 @@ nonisolated struct PropostaDeTransacao: Equatable, Sendable {
     /// Nome de uma categoria existente, validado contra a lista — nunca inventado.
     var nomeDaCategoria: String?
     var data: Date
+    var nota: String? = nil
+    var fotoDoTalao: Data? = nil
 }
 
 nonisolated enum ErroDeInterpretacao: Error {

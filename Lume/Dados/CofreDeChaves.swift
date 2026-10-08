@@ -7,6 +7,8 @@ nonisolated enum CofreDeChaves {
     private static let servico = "com.aurea.lume"
 
     static let contaClaude = "chave-api-claude"
+    /// O código de 4 dígitos do bloqueio da app — alternativa ou reserva ao Face ID.
+    static let contaCodigoDeBloqueio = "codigo-bloqueio"
 
     /// Guardar texto vazio equivale a apagar.
     static func guardar(_ valor: String, para conta: String) {

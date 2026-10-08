@@ -18,6 +18,19 @@ enum DadosDeExemplo {
         semear(em: contexto)
     }
 
+    /// Apaga tudo e semeia dados de teste a contar a partir de hoje. Usado
+    /// pelo botão "Carregar dados de teste" em Perfil → Dados.
+    static func recarregar(em contexto: ModelContext) {
+        try? contexto.delete(model: Transacao.self)
+        try? contexto.delete(model: Recorrente.self)
+        try? contexto.delete(model: Meta.self)
+        try? contexto.delete(model: Categoria.self)
+        try? contexto.delete(model: Conta.self)
+        try? contexto.delete(model: DefinicoesDoMes.self)
+        try? contexto.save()
+        semear(em: contexto)
+    }
+
     static func semear(em contexto: ModelContext) {
         // MARK: Categorias
         // Orçamentos calibrados para o rendimento de exemplo: o Supermercado
@@ -26,11 +39,13 @@ enum DadosDeExemplo {
         let supermercado = Categoria(nome: "Supermercado", simbolo: "cart.fill", corHex: "7B8B6F", orcamentoMensal: eur("160"), ordem: 0)
         let restauracao = Categoria(nome: "Restauração", simbolo: "fork.knife", corHex: "B0713C", orcamentoMensal: eur("90"), ordem: 1)
         let transportes = Categoria(nome: "Transportes", simbolo: "tram.fill", corHex: "5B7B94", orcamentoMensal: eur("120"), ordem: 2)
-        let casa = Categoria(nome: "Casa", simbolo: "house.fill", corHex: "8A8A85", ordem: 3)
+        // Casa, Saúde e Roupa também com limite — para aparecerem em "Os
+        // teus limites"/"Limites por categoria", como as outras.
+        let casa = Categoria(nome: "Casa", simbolo: "house.fill", corHex: "8A8A85", orcamentoMensal: eur("720"), ordem: 3)
         let subscricoes = Categoria(nome: "Subscrições", simbolo: "play.rectangle.fill", corHex: "6E5B94", orcamentoMensal: eur("40"), ordem: 4)
-        let saude = Categoria(nome: "Saúde", simbolo: "cross.case.fill", corHex: "94525B", ordem: 5)
+        let saude = Categoria(nome: "Saúde", simbolo: "cross.case.fill", corHex: "94525B", orcamentoMensal: eur("60"), ordem: 5)
         let lazer = Categoria(nome: "Lazer", simbolo: "ticket.fill", corHex: "C9A45A", orcamentoMensal: eur("60"), ordem: 6)
-        let roupa = Categoria(nome: "Roupa", simbolo: "tshirt.fill", corHex: "9A7B94", ordem: 7)
+        let roupa = Categoria(nome: "Roupa", simbolo: "tshirt.fill", corHex: "9A7B94", orcamentoMensal: eur("50"), ordem: 7)
 
         // MARK: Contas
 
@@ -48,33 +63,52 @@ enum DadosDeExemplo {
 
         // MARK: Transações — mês corrente
 
-        let mesCorrente = [
+        var mesCorrente = [
             // Hoje
             Transacao(valor: eur("0.80"), descricao: "Café", loja: "Pastelaria do bairro", data: .now, categoria: restauracao, conta: dinheiro, origem: .texto),
             Transacao(valor: eur("12.50"), descricao: "Almoço", loja: "Time Out Market", data: .now, categoria: restauracao, conta: revolut, origem: .texto),
-            // Últimos dias
-            Transacao(valor: eur("23.41"), descricao: "Compras", loja: "Pingo Doce", data: diasAtras(1), categoria: supermercado, conta: revolut, origem: .texto),
-            Transacao(valor: eur("8.00"), descricao: "Uber", data: diasAtras(1), categoria: transportes, conta: revolut, origem: .texto),
-            Transacao(valor: eur("3.20"), descricao: "Pastel de nata e galão", data: diasAtras(2), categoria: restauracao, conta: dinheiro, origem: .texto),
-            Transacao(valor: eur("54.12"), descricao: "Compras da semana", loja: "Continente", data: diasAtras(3), categoria: supermercado, conta: cgd, origem: .manual),
-            Transacao(valor: eur("18.90"), descricao: "Farmácia", data: diasAtras(4), categoria: saude, conta: revolut, origem: .manual),
-            Transacao(valor: eur("40.00"), descricao: "Gasolina", loja: "Galp", data: diasAtras(5), categoria: transportes, conta: cgd, origem: .manual),
-            Transacao(valor: eur("31.75"), descricao: "Compras", loja: "Lidl", data: diasAtras(7), categoria: supermercado, conta: revolut, origem: .texto),
-            Transacao(valor: eur("14.20"), descricao: "Brunch", data: diasAtras(8), categoria: restauracao, conta: revolut, origem: .texto),
-            Transacao(valor: eur("12.40"), descricao: "Mercearia do bairro", data: diasAtras(9), categoria: supermercado, conta: dinheiro, origem: .manual),
-            Transacao(valor: eur("15.50"), descricao: "Cinema", data: diasAtras(10), categoria: lazer, conta: revolut, origem: .texto),
-            Transacao(valor: eur("26.90"), descricao: "Compras", loja: "Auchan", data: diasAtras(11), categoria: supermercado, conta: cgd, origem: .manual),
-            Transacao(valor: eur("21.90"), descricao: "Jantar com amigos", data: diasAtras(13), categoria: restauracao, conta: revolut, origem: .texto),
-            Transacao(valor: eur("12.90"), descricao: "Livro", loja: "Bertrand", data: diasAtras(16), categoria: lazer, conta: revolut, origem: .manual),
             // Contas fixas pagas — ligadas às recorrentes para não contarem duas vezes
-            Transacao(valor: eur("650"), descricao: "Renda", data: nesteMes(dia: 1), categoria: casa, conta: cgd, recorrente: renda, origem: .manual),
-            Transacao(valor: eur("40"), descricao: "Passe Navegante", data: nesteMes(dia: 1), categoria: transportes, conta: cgd, recorrente: navegante, origem: .manual),
-            Transacao(valor: eur("48.30"), descricao: "EDP", data: nesteMes(dia: 8), categoria: casa, conta: cgd, recorrente: edp, origem: .manual),
-            Transacao(valor: eur("12.99"), descricao: "Netflix", data: nesteMes(dia: 15), categoria: subscricoes, conta: revolut, recorrente: netflix, origem: .manual),
-            Transacao(valor: eur("11.99"), descricao: "Spotify", data: nesteMes(dia: 20), categoria: subscricoes, conta: revolut, recorrente: spotify, origem: .manual),
+            Transacao(valor: eur("650"), descricao: "Renda", data: nesteMes(dia: 1, hora: 9), categoria: casa, conta: cgd, recorrente: renda, origem: .manual),
+            Transacao(valor: eur("40"), descricao: "Passe Navegante", data: nesteMes(dia: 1, hora: 9), categoria: transportes, conta: cgd, recorrente: navegante, origem: .manual),
             // Receita
-            Transacao(valor: eur("1450"), tipo: .receita, descricao: "Salário", data: nesteMes(dia: 1), conta: cgd, origem: .manual),
+            Transacao(valor: eur("1450"), tipo: .receita, descricao: "Salário", data: nesteMes(dia: 1, hora: 9), conta: cgd, origem: .manual),
         ]
+        // Nada no futuro: um movimento só existe se o dia a que pertence já
+        // tiver chegado — como as contas fixas (EDP, Netflix, Spotify) mais
+        // abaixo. Antes, os gastos "recentes" eram sempre arrastados para o
+        // dia 1 quando caíam fora do mês corrente, e amontoavam-se todos no
+        // mesmo dia a cada vez que a app corria no início de um mês (o total
+        // do dia ficava igual ao do mês). Agora cada um só aparece a partir
+        // do dia a que pertence de verdade, e o mês fica mais vazio no
+        // início — como na vida real.
+        let diaDeHoje = Calendar.current.component(.day, from: .now)
+        func seAtingido(_ diasAtras: Int, hora: Int = 12, _ construir: (Date) -> Transacao) {
+            let diaAlvo = diaDeHoje - diasAtras
+            guard diaAlvo >= 1 else { return }
+            mesCorrente.append(construir(nesteMes(dia: diaAlvo, hora: hora)))
+        }
+        seAtingido(1, hora: 18) { Transacao(valor: eur("23.41"), descricao: "Compras", loja: "Pingo Doce", data: $0, categoria: supermercado, conta: revolut, origem: .texto) }
+        seAtingido(1, hora: 8) { Transacao(valor: eur("8.00"), descricao: "Uber", data: $0, categoria: transportes, conta: revolut, origem: .texto) }
+        seAtingido(2, hora: 10) { Transacao(valor: eur("3.20"), descricao: "Pastel de nata e galão", data: $0, categoria: restauracao, conta: dinheiro, origem: .texto) }
+        seAtingido(3, hora: 19) { Transacao(valor: eur("54.12"), descricao: "Compras da semana", loja: "Continente", data: $0, categoria: supermercado, conta: cgd, origem: .manual) }
+        seAtingido(4, hora: 17) { Transacao(valor: eur("18.90"), descricao: "Farmácia", data: $0, categoria: saude, conta: revolut, origem: .manual) }
+        seAtingido(5, hora: 9) { Transacao(valor: eur("40.00"), descricao: "Gasolina", loja: "Galp", data: $0, categoria: transportes, conta: cgd, origem: .manual) }
+        seAtingido(7, hora: 18) { Transacao(valor: eur("31.75"), descricao: "Compras", loja: "Lidl", data: $0, categoria: supermercado, conta: revolut, origem: .texto) }
+        seAtingido(8, hora: 11) { Transacao(valor: eur("14.20"), descricao: "Brunch", data: $0, categoria: restauracao, conta: revolut, origem: .texto) }
+        seAtingido(9, hora: 19) { Transacao(valor: eur("12.40"), descricao: "Mercearia do bairro", data: $0, categoria: supermercado, conta: dinheiro, origem: .manual) }
+        seAtingido(10, hora: 21) { Transacao(valor: eur("15.50"), descricao: "Cinema", data: $0, categoria: lazer, conta: revolut, origem: .texto) }
+        seAtingido(11, hora: 18) { Transacao(valor: eur("26.90"), descricao: "Compras", loja: "Auchan", data: $0, categoria: supermercado, conta: cgd, origem: .manual) }
+        seAtingido(13, hora: 20) { Transacao(valor: eur("21.90"), descricao: "Jantar com amigos", data: $0, categoria: restauracao, conta: revolut, origem: .texto) }
+        seAtingido(16, hora: 16) { Transacao(valor: eur("12.90"), descricao: "Livro", loja: "Bertrand", data: $0, categoria: lazer, conta: revolut, origem: .manual) }
+        if diaDeHoje >= 8 {
+            mesCorrente.append(Transacao(valor: eur("48.30"), descricao: "EDP", data: nesteMes(dia: 8, hora: 9), categoria: casa, conta: cgd, recorrente: edp, origem: .manual))
+        }
+        if diaDeHoje >= 15 {
+            mesCorrente.append(Transacao(valor: eur("12.99"), descricao: "Netflix", data: nesteMes(dia: 15, hora: 9), categoria: subscricoes, conta: revolut, recorrente: netflix, origem: .manual))
+        }
+        if diaDeHoje >= 20 {
+            mesCorrente.append(Transacao(valor: eur("11.99"), descricao: "Spotify", data: nesteMes(dia: 20, hora: 9), categoria: subscricoes, conta: revolut, recorrente: spotify, origem: .manual))
+        }
 
         // MARK: Transações — mês passado
 
@@ -121,6 +155,16 @@ enum DadosDeExemplo {
             Meta(nome: "Viagem aos Açores", valorAlvo: eur("900"), valorPoupado: eur("240"), simbolo: "airplane"),
         ]
 
+        // Nada no futuro, como nos movimentos: dias atrás a partir de hoje,
+        // não um dia fixo do mês (que podia ainda não ter chegado).
+        let reforcos = [
+            ReforcoDaMeta(valor: eur("250"), data: diasAtras(65), meta: metas[0]),
+            ReforcoDaMeta(valor: eur("300"), data: diasAtras(35), meta: metas[0]),
+            ReforcoDaMeta(valor: eur("300"), data: diasAtras(5), meta: metas[0]),
+            ReforcoDaMeta(valor: eur("120"), data: diasAtras(20), meta: metas[1]),
+            ReforcoDaMeta(valor: eur("120"), data: diasAtras(3), meta: metas[1]),
+        ]
+
         let hoje = Calendar.current.dateComponents([.year, .month], from: .now)
         let definicoes = DefinicoesDoMes(
             ano: hoje.year ?? 2026,
@@ -140,6 +184,7 @@ enum DadosDeExemplo {
         }
         (mesCorrente + mesPassado + doisMesesAtras).forEach { contexto.insert($0) }
         metas.forEach { contexto.insert($0) }
+        reforcos.forEach { contexto.insert($0) }
         contexto.insert(definicoes)
 
         try? contexto.save()
@@ -153,14 +198,17 @@ enum DadosDeExemplo {
         Decimal(string: texto, locale: Locale(identifier: "en_US_POSIX")) ?? .zero
     }
 
-    private static func diasAtras(_ dias: Int) -> Date {
-        Calendar.current.date(byAdding: .day, value: -dias, to: .now) ?? .now
-    }
-
-    private static func nesteMes(dia: Int) -> Date {
+    /// Um dia do mês corrente, a uma hora dada (as listas de movimentos
+    /// mostram a hora, por isso cada um tem a sua, em vez de todos à meia-noite).
+    private static func nesteMes(dia: Int, hora: Int = 9) -> Date {
         var componentes = Calendar.current.dateComponents([.year, .month], from: .now)
         componentes.day = dia
+        componentes.hour = hora
         return Calendar.current.date(from: componentes) ?? .now
+    }
+
+    private static func diasAtras(_ dias: Int) -> Date {
+        Calendar.current.date(byAdding: .day, value: -dias, to: .now) ?? .now
     }
 
     private static func mesesAtras(_ meses: Int, dia: Int) -> Date {

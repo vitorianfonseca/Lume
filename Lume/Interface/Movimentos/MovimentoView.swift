@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// O detalhe de um movimento — o ecrã 11 do Figma: avatar ao centro,
-/// valor em grande, chip da categoria e as linhas Conta/Origem/Data.
+/// O detalhe de um movimento — o ecrã 11 do Figma: ícone da categoria ao
+/// centro, valor em grande e as linhas Categoria/Conta/Data/Origem no mesmo
+/// padrão do editor.
 struct MovimentoView: View {
     let transacao: Transacao
     let aoEditar: () -> Void
@@ -12,94 +13,96 @@ struct MovimentoView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
-                CabecalhoDeEcra(legenda: legendaDaData, titulo: "O movimento")
+                // Cabeçalho padrão dos ecrãs secundários, com fechar
+                // (o detalhe abre numa folha).
+                CabecalhoDeEcra(
+                    legenda: legendaDaData,
+                    titulo: "O movimento",
+                    aoVoltar: aoFechar,
+                    simboloDeVoltar: "xmark"
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                // O cartão do movimento: avatar 54, nome 22 SemiBold,
-                // valor 39 Medium e o chip da categoria.
+                // O cartão do movimento: o ícone 3D da categoria, o nome e o
+                // valor com euros grandes e cêntimos pequenos.
                 VStack(spacing: 12) {
-                    AvatarDeIniciais(texto: titulo, lado: 54)
+                    IconeDeCategoria(categoria: transacao.categoria, textoAlternativo: titulo, lado: 54)
                     Text(titulo)
                         .font(Tema.fonte(22, .semibold))
                         .foregroundStyle(Tema.tinta)
-                    Text(valorFormatado)
-                        .font(Tema.fonte(39, .medium))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                        .foregroundStyle(transacao.tipo == .receita ? Tema.positivo : Tema.tinta)
-                    if let categoria = transacao.categoria {
-                        Text(categoria.nome)
-                            .font(Tema.fonte(12, .semibold))
-                            .foregroundStyle(Tema.douradoEscuro)
-                            .padding(.horizontal, 16)
-                            .frame(height: 32)
-                            .background(Tema.areia, in: RoundedRectangle(cornerRadius: 16))
+                        .multilineTextAlignment(.center)
+                    HStack(alignment: .firstTextBaseline, spacing: 1) {
+                        if transacao.tipo == .receita {
+                            Text("+")
+                                .font(Tema.fonte(39, .medium))
+                                .foregroundStyle(Tema.positivo)
+                        }
+                        ValorEmEuros(
+                            valor: transacao.tipo == .receita ? transacao.valor : -transacao.valor,
+                            tamanho: 39,
+                            peso: .medium,
+                            cor: transacao.tipo == .receita ? Tema.positivo : Tema.tinta
+                        )
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(valorFormatado)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(24)
-                .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Tema.Raio.cartao)
-                        .strokeBorder(Tema.separador, lineWidth: 1)
-                )
+                .cartao()
 
-                VStack(alignment: .leading, spacing: 4) {
-                    linha("Conta", simbolo: "creditcard", valor: nomeDaConta)
-                    linha("Origem", simbolo: simboloDaOrigem, valor: transacao.origem.nome ?? "Manual")
-                    linha("Data", simbolo: "calendar", valor: dataCompleta)
+                // O mesmo padrão de linha do editor, aqui só de leitura.
+                VStack(alignment: .leading, spacing: 0) {
+                    LinhaDeFormulario(rotulo: "Categoria", simbolo: "square.grid.2x2", mostrarChevron: false) {
+                        Text(transacao.categoria?.nome ?? "Sem categoria")
+                            .foregroundStyle(transacao.categoria == nil ? Tema.tintaSuave : Tema.tinta)
+                    }
+                    divisor
+                    LinhaDeFormulario(rotulo: "Conta", simbolo: "creditcard", mostrarChevron: false) {
+                        Text(nomeDaConta)
+                    }
+                    divisor
+                    LinhaDeFormulario(rotulo: "Data", simbolo: "calendar", mostrarChevron: false) {
+                        Text(dataCompleta)
+                            .monospacedDigit()
+                    }
+                    divisor
+                    LinhaDeFormulario(rotulo: "Registado por", simbolo: simboloDaOrigem, mostrarChevron: false) {
+                        Text(transacao.origem.nome ?? "Manual")
+                    }
                     if let nota = transacao.nota, !nota.isEmpty {
-                        Divider().overlay(Tema.separador)
-                        Text("NOTA")
-                            .font(Tema.fonte(10, .semibold))
-                            .foregroundStyle(Tema.tintaSuave)
-                            .padding(.top, 8)
-                        Text(nota)
-                            .font(Tema.fonte(14))
-                            .foregroundStyle(Tema.tinta)
+                        divisor
+                        VStack(alignment: .leading, spacing: 6) {
+                            Legenda("Nota")
+                            Text(nota)
+                                .font(Tema.fonte(14))
+                                .foregroundStyle(Tema.tinta)
+                        }
+                        .padding(.vertical, 14)
                     }
                 }
-                .padding(20)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 4)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Tema.Raio.cartao)
-                        .strokeBorder(Tema.separador, lineWidth: 1)
-                )
+                .cartao()
 
                 if transacao.fotoDoTalao != nil {
                     Button {
                         mostrarTalao = true
                     } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "camera")
-                                .font(Tema.fonte(15))
-                                .foregroundStyle(Tema.tintaFosca)
-                            Text("Ver talão original")
-                                .font(Tema.fonte(14, .medium))
-                                .foregroundStyle(Tema.tinta)
-                            Spacer()
+                        LinhaDeFormulario(rotulo: "Ver talão original", simbolo: "camera", mostrarChevron: false) {
                             Image(systemName: "chevron.right")
-                                .font(Tema.fonte(13))
-                                .foregroundStyle(Tema.tintaSuave)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Tema.placeholder)
                         }
-                        .frame(height: 55)
+                        .padding(.horizontal, 18)
+                        .cartao()
                     }
+                    .buttonStyle(EscalaAoTocar())
                 }
 
-                Button("Editar movimento") { aoEditar() }
-                    .font(Tema.fonte(13, .medium))
-                    .foregroundStyle(Tema.douradoEscuro)
-
-                Button {
-                    aoFechar()
-                } label: {
-                    Text("Voltar aos movimentos")
-                        .font(Tema.fonte(15, .semibold))
-                        .foregroundStyle(Color(hex: "302B24"))
-                        .frame(maxWidth: .infinity, minHeight: 52)
-                        .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
-                }
-                .buttonStyle(EscalaAoTocar())
+                BotaoLume(titulo: "Editar movimento", simbolo: "pencil", estilo: .secundario) { aoEditar() }
+                    .padding(.top, 4)
             }
             .padding(.horizontal, Tema.margemDoEcra)
             .padding(.top, 18)
@@ -129,12 +132,13 @@ struct MovimentoView: View {
         case .voz: "mic"
         case .texto: "text.alignleft"
         case .manual: "hand.tap"
+        case .applePay: "wallet.pass.fill"
         }
     }
 
     private var nomeDaConta: String {
-        guard let conta = transacao.conta else { return "—" }
-        return conta.principal ? "Conta principal" : conta.nome
+        // O nome real ("Revolut"), como no subtítulo das linhas da lista.
+        transacao.conta?.nome ?? "—"
     }
 
     private var legendaDaData: String {
@@ -162,20 +166,7 @@ struct MovimentoView: View {
         return transacao.tipo == .receita ? "+\(texto)" : "−\(texto)"
     }
 
-    private func linha(_ titulo: String, simbolo: String, valor: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: simbolo)
-                .font(Tema.fonte(12))
-                .foregroundStyle(Tema.tintaSuave)
-                .frame(width: 16)
-            Text(titulo)
-                .font(Tema.fonte(13))
-                .foregroundStyle(Tema.tintaSuave)
-            Spacer()
-            Text(valor)
-                .font(Tema.fonte(13, .medium))
-                .foregroundStyle(Tema.tinta)
-        }
-        .frame(height: 44)
+    private var divisor: some View {
+        Divider().overlay(Tema.separador)
     }
 }

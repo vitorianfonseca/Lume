@@ -1,102 +1,141 @@
 import SwiftData
 import SwiftUI
 
-/// As contas como cartões físicos: desliza para escolher, vê o saldo
-/// e os últimos movimentos de cada uma. A gestão vive nas Definições.
+/// As contas como cartões: desliza para escolher (o próximo cartão
+/// espreita à direita e os pontos dizem quantas há), vê o saldo e o resumo
+/// do mês de cada uma. A gestão vive nas Definições.
+///
+/// Abre-se dentro do `NavigationStack` do Perfil: não tem pilha própria,
+/// esconde a barra do sistema e mostra o voltar do cabeçalho padrão.
 struct ContasView: View {
+    @Environment(\.dismiss) private var dismiss
+    /// Verdadeiro quando foi empurrado (Perfil); na raiz não há voltar.
+    @Environment(\.isPresented) private var foiAberto
     @Query(sort: \Conta.nome) private var contas: [Conta]
     @Query(sort: \Transacao.data, order: .reverse) private var transacoes: [Transacao]
 
     @State private var contaSelecionada: PersistentIdentifier?
+    @State private var contaDosMovimentos: Conta?
 
-    /// A principal (o cartão dourado) vem sempre à frente do carrossel.
-    private var ordenadas: [Conta] {
-        contas.sorted { ($0.principal ? 0 : 1, $0.nome) < ($1.principal ? 0 : 1, $1.nome) }
-    }
+    private var ordenadas: [Conta] { contas.ordenadasPorPrincipal }
 
     private var contaAtual: Conta? {
         contas.first { $0.persistentModelID == contaSelecionada } ?? ordenadas.first
     }
 
+    private var legenda: String {
+        contas.count == 1 ? "1 conta" : "\(contas.count) contas"
+    }
+
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
-                    if contas.isEmpty {
-                        ContentUnavailableView(
-                            "Sem contas",
-                            systemImage: "creditcard",
-                            description: Text("Cria contas nas Definições para as veres aqui.")
-                        )
-                    } else {
-                        carrossel
-                        resumoDaConta
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                CabecalhoDeEcra(
+                    legenda: legenda,
+                    titulo: "Contas",
+                    aoVoltar: foiAberto ? { dismiss() } : nil
+                )
+                .padding(.horizontal, Tema.margemDoEcra)
+
+                if contas.isEmpty {
+                    EstadoVazio(
+                        ilustracao: .cartoes,
+                        titulo: "Sem contas",
+                        texto: "Cria contas no Perfil, em Contas e carteiras, para as veres aqui."
+                    )
+                    .padding(.horizontal, Tema.margemDoEcra)
+                    .padding(.top, 40)
+                } else {
+                    CarrosselDeCartoes(contas: ordenadas, selecionada: $contaSelecionada)
+
+                    if let conta = contaAtual {
+                        VStack(alignment: .leading, spacing: 16) {
+                            if conta.saldoAtual < .zero {
+                                avisoDeDescoberto(conta)
+                            }
+                            resumo(de: conta)
+                        }
+                        .padding(.horizontal, Tema.margemDoEcra)
                     }
                 }
-                .padding(.top, 8)
-                .padding(.bottom, 24)
             }
-            .background(Tema.fundo)
-            .navigationTitle("Contas")
+            .padding(.top, 4)
+            .padding(.bottom, 24)
+        }
+        .background(Tema.fundo)
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(item: $contaDosMovimentos) { conta in
+            MovimentosDaContaView(conta: conta)
         }
     }
 
-    /// Um cartão por página, com paragem alinhada — como folhear a carteira.
-    /// A folga vertical dá espaço à sombra, que a ScrollView cortaria.
-    private var carrossel: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 14) {
-                ForEach(ordenadas) { conta in
-                    CartaoDeConta(conta: conta)
-                        .containerRelativeFrame(.horizontal)
-                        // Os cartões inclinam em 3D ao deslizar, como numa carteira.
-                        .scrollTransition(axis: .horizontal) { conteudo, fase in
-                            conteudo
-                                .rotation3DEffect(.degrees(fase.value * -10), axis: (x: 0, y: 1, z: 0))
-                                .scaleEffect(fase.isIdentity ? 1 : 0.94)
-                                .opacity(fase.isIdentity ? 1 : 0.75)
-                        }
-                        .id(conta.persistentModelID)
-                }
+    // MARK: - Descoberto
+
+    /// Um descoberto é informação crítica, mas dita com calma: vermelho
+    /// suave, sem alarmes.
+    private func avisoDeDescoberto(_ conta: Conta) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "exclamationmark.circle")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Tema.negativo)
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Conta a descoberto")
+                    .font(Tema.fonte(15, .semibold))
+                    .foregroundStyle(Tema.negativo)
+                Text("O saldo está em \(FormatadorDeMoeda.texto(conta.saldoAtual)). Uma receita ou transferência repõe-no acima de zero.")
+                    .font(Tema.fonte(12))
+                    .foregroundStyle(Tema.tinta)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.vertical, 18)
-            .scrollTargetLayout()
+            Spacer(minLength: 0)
         }
-        .scrollTargetBehavior(.viewAligned)
-        .scrollPosition(id: $contaSelecionada)
-        .scrollIndicators(.hidden)
-        .contentMargins(.horizontal, Tema.margemDoEcra, for: .scrollContent)
+        .padding(16)
+        .background(Tema.fundoNegativo, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Resumo do mês da conta
 
-    /// O que este separador acrescenta ao Movimentos: a visão por conta.
-    /// O extrato completo e pesquisável vive no separador Movimentos.
-    @ViewBuilder
-    private var resumoDaConta: some View {
-        if let conta = contaAtual {
-            let resumo = resumoDoMes(de: conta)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Este mês — \(conta.nome)")
-                    .font(Tema.fonte(13))
-                    .foregroundStyle(Tema.tintaSuave)
+    /// O que este ecrã acrescenta ao Movimentos: a visão por conta.
+    /// O extrato da conta abre-se na última linha do cartão.
+    private func resumo(de conta: Conta) -> some View {
+        let resumo = resumoDoMes(de: conta)
+        return VStack(alignment: .leading, spacing: 0) {
+            Legenda("Este mês · \(conta.nome)")
+                .padding(.top, 16)
+                .padding(.bottom, 4)
 
-                VStack(spacing: 0) {
-                    linhaDeResumo("Recebido", "+\(FormatadorDeMoeda.texto(resumo.recebido))", cor: Tema.positivo)
-                    Divider().overlay(Tema.separador)
-                    linhaDeResumo("Gasto", "−\(FormatadorDeMoeda.texto(resumo.gasto))", cor: Tema.tinta)
-                    Divider().overlay(Tema.separador)
-                    linhaDeResumo("Movimentos", "\(resumo.quantos)", cor: Tema.tinta)
+            linhaDeResumo("Saldo atual", FormatadorDeMoeda.texto(conta.saldoAtual),
+                          cor: conta.saldoAtual < .zero ? Tema.negativo : Tema.tinta)
+            Divider().overlay(Tema.separador)
+            linhaDeResumo("Recebido",
+                          resumo.recebido > .zero ? "+\(FormatadorDeMoeda.texto(resumo.recebido))" : FormatadorDeMoeda.texto(.zero),
+                          cor: resumo.recebido > .zero ? Tema.positivo : Tema.tinta)
+            Divider().overlay(Tema.separador)
+            linhaDeResumo("Gasto", resumo.gasto > .zero ? "−\(FormatadorDeMoeda.texto(resumo.gasto))" : FormatadorDeMoeda.texto(.zero), cor: Tema.tinta)
+            Divider().overlay(Tema.separador)
+            linhaDeResumo("Movimentos", "\(resumo.quantos)", cor: Tema.tinta)
+            Divider().overlay(Tema.separador)
+
+            Button {
+                contaDosMovimentos = conta
+            } label: {
+                HStack {
+                    Text("Ver movimentos desta conta")
+                        .font(Tema.fonte(15, .medium))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
                 }
-
-                Text("O extrato completo, com pesquisa, vive no separador Movimentos.")
-                    .font(Tema.fonte(12))
-                    .foregroundStyle(Tema.tintaSuave)
-                    .padding(.top, 10)
+                .foregroundStyle(Tema.ouro)
+                .frame(minHeight: 50)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, Tema.margemDoEcra)
-            .animation(.snappy, value: conta.persistentModelID)
+            .buttonStyle(EscalaAoTocar())
         }
+        .padding(.horizontal, 18)
+        .cartao()
     }
 
     private func linhaDeResumo(_ titulo: String, _ valor: String, cor: Color) -> some View {
@@ -106,11 +145,11 @@ struct ContasView: View {
                 .foregroundStyle(Tema.tinta)
             Spacer()
             Text(valor)
-                .font(Tema.fonte(15))
+                .font(Tema.fonte(15, .medium))
                 .monospacedDigit()
                 .foregroundStyle(cor)
         }
-        .padding(.vertical, 12)
+        .frame(minHeight: 48)
         .accessibilityElement(children: .combine)
     }
 
@@ -126,150 +165,275 @@ struct ContasView: View {
     }
 }
 
-/// Carrossel reutilizável dos cartões — no novo design vive no Planear.
-struct CarrosselDeContas: View {
-    @Query(sort: \Conta.nome) private var contas: [Conta]
+// MARK: - Movimentos de uma conta
 
-    private var ordenadas: [Conta] {
-        contas.sorted { ($0.principal ? 0 : 1, $0.nome) < ($1.principal ? 0 : 1, $1.nome) }
+/// O extrato de uma só conta, agrupado por dia, com o cabeçalho padrão.
+private struct MovimentosDaContaView: View {
+    let conta: Conta
+    @Environment(\.dismiss) private var dismiss
+
+    private var movimentos: [Transacao] {
+        (conta.transacoes ?? []).sorted { $0.data > $1.data }
+    }
+
+    private var porDia: [(dia: Date, transacoes: [Transacao])] {
+        let calendario = Calendar.current
+        return Dictionary(grouping: movimentos) { calendario.startOfDay(for: $0.data) }
+            .sorted { $0.key > $1.key }
+            .map { (dia: $0.key, transacoes: $0.value.sorted { $0.data > $1.data }) }
     }
 
     var body: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 14) {
-                ForEach(ordenadas) { conta in
-                    CartaoDeConta(conta: conta)
-                        .containerRelativeFrame(.horizontal)
-                        .scrollTransition(axis: .horizontal) { conteudo, fase in
-                            conteudo
-                                .rotation3DEffect(.degrees(fase.value * -10), axis: (x: 0, y: 1, z: 0))
-                                .scaleEffect(fase.isIdentity ? 1 : 0.94)
-                                .opacity(fase.isIdentity ? 1 : 0.75)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                CabecalhoDeEcra(
+                    legenda: movimentos.count == 1 ? "1 movimento" : "\(movimentos.count) movimentos",
+                    titulo: conta.nome,
+                    aoVoltar: { dismiss() }
+                )
+
+                if movimentos.isEmpty {
+                    EstadoVazio(
+                        ilustracao: .carteira,
+                        titulo: "Sem movimentos",
+                        texto: "Os registos feitos nesta conta aparecem aqui."
+                    )
+                    .padding(.top, 40)
+                } else {
+                    ForEach(porDia, id: \.dia) { grupo in
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(alignment: .firstTextBaseline) {
+                                Text(titulo(para: grupo.dia))
+                                    .font(Tema.fonte(15, .semibold))
+                                    .foregroundStyle(Tema.tinta)
+                                Spacer()
+                                Text(saldoDoDia(grupo.transacoes))
+                                    .font(Tema.fonte(12, .medium))
+                                    .monospacedDigit()
+                                    .textoDourado()
+                            }
+
+                            VStack(spacing: 0) {
+                                ForEach(Array(grupo.transacoes.enumerated()), id: \.element.persistentModelID) { indice, transacao in
+                                    if indice > 0 {
+                                        Divider().overlay(Tema.separador)
+                                    }
+                                    LinhaDeTransacao(transacao: transacao, estilo: .extrato)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .cartao()
                         }
-                        .id(conta.persistentModelID)
+                    }
                 }
             }
-            .padding(.vertical, 14)
-            .scrollTargetLayout()
+            .padding(.horizontal, Tema.margemDoEcra)
+            .padding(.top, 4)
+            .padding(.bottom, 24)
         }
-        .scrollTargetBehavior(.viewAligned)
-        .scrollIndicators(.hidden)
-        .contentMargins(.horizontal, Tema.margemDoEcra, for: .scrollContent)
+        .background(Tema.fundo)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    /// "Hoje, 1 outubro" · "Ontem, 30 setembro" · "Segunda-feira, 28 setembro".
+    private func titulo(para dia: Date) -> String {
+        let calendario = Calendar.current
+        let local = FormatadorDeMoeda.localidade
+        let diaEMes = "\(dia.formatted(.dateTime.day().locale(local))) \(dia.formatted(.dateTime.month(.wide).locale(local)))"
+        if calendario.isDateInToday(dia) { return "Hoje, \(diaEMes)" }
+        if calendario.isDateInYesterday(dia) { return "Ontem, \(diaEMes)" }
+        let semana = dia.formatted(.dateTime.weekday(.wide).locale(local))
+        return "\(semana.prefix(1).uppercased() + semana.dropFirst()), \(diaEMes)"
+    }
+
+    /// O total do dia, só com os movimentos desse dia: "+12,00 €" ou "−106,90 €".
+    private func saldoDoDia(_ transacoes: [Transacao]) -> String {
+        let total = transacoes.reduce(Decimal.zero) { soma, transacao in
+            transacao.tipo == .receita ? soma + transacao.valor : soma - transacao.valor
+        }
+        let texto = FormatadorDeMoeda.texto(total)
+        return total > .zero ? "+\(texto)" : texto
     }
 }
 
-/// Um cartão bancário "físico": gradiente profundo com brilho de plástico,
-/// chip EMV em dourado polido, contactless e texto gravado em relevo.
+// MARK: - Carrossel
+
+/// Carrossel reutilizável dos cartões (Perfil → Contas e carteiras).
+struct CarrosselDeContas: View {
+    @Query(sort: \Conta.nome) private var contas: [Conta]
+    @State private var selecionada: PersistentIdentifier?
+
+    var body: some View {
+        CarrosselDeCartoes(contas: contas.ordenadasPorPrincipal, selecionada: $selecionada)
+    }
+}
+
+/// Um cartão por paragem, com o seguinte a espreitar à direita e pontos
+/// de página por baixo — percebe-se logo que há mais para deslizar.
+/// Sem inclinações nem efeitos ao deslizar: só o movimento do dedo.
+private struct CarrosselDeCartoes: View {
+    let contas: [Conta]
+    @Binding var selecionada: PersistentIdentifier?
+
+    /// Quanto do próximo cartão fica à vista.
+    private let espreitadela: CGFloat = 28
+
+    private var atual: PersistentIdentifier? {
+        selecionada ?? contas.first?.persistentModelID
+    }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ScrollView(.horizontal) {
+                HStack(spacing: 12) {
+                    ForEach(contas) { conta in
+                        CartaoDeConta(conta: conta)
+                            .containerRelativeFrame(.horizontal) { largura, _ in
+                                contas.count > 1 ? max(largura - espreitadela, 0) : largura
+                            }
+                            .id(conta.persistentModelID)
+                    }
+                }
+                .padding(.vertical, 10)
+                .scrollTargetLayout()
+            }
+            // A sombra dos cartões não fica cortada nas margens da ScrollView.
+            .scrollClipDisabled()
+            .scrollTargetBehavior(.viewAligned)
+            .scrollPosition(id: $selecionada)
+            .scrollIndicators(.hidden)
+            .contentMargins(.horizontal, Tema.margemDoEcra, for: .scrollContent)
+
+            if contas.count > 1 {
+                pontos
+            }
+        }
+    }
+
+    private var pontos: some View {
+        HStack(spacing: 6) {
+            ForEach(contas) { conta in
+                let ativa = conta.persistentModelID == atual
+                Button {
+                    withAnimation(.snappy(duration: 0.3)) {
+                        selecionada = conta.persistentModelID
+                    }
+                } label: {
+                    Circle()
+                        .fill(ativa ? Tema.ouro : AnyShapeStyle(Tema.separador))
+                        .frame(width: 7, height: 7)
+                        .padding(4)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(rotuloDosPontos)
+    }
+
+    private var rotuloDosPontos: String {
+        let posicao = (contas.firstIndex { $0.persistentModelID == atual } ?? 0) + 1
+        return "Conta \(posicao) de \(contas.count)"
+    }
+}
+
+// MARK: - Cartão
+
+/// O cartão de uma conta: nome, tipo e saldo sobre o gradiente da conta
+/// (dourado para a principal). Baixo e limpo — sem chip, contactless nem
+/// número mascarado, que ocupavam espaço sem dar informação.
 struct CartaoDeConta: View {
     let conta: Conta
+
+    private var descoberto: Bool { conta.saldoAtual < .zero }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
-                Text(conta.nome.uppercased())
-                    .font(Tema.fonte(13, .semibold))
-                    .kerning(2)
-                    .gravado()
-                Spacer()
-                Image(systemName: "wave.3.right")
-                    .font(Tema.fonte(16, .medium))
-                    .opacity(0.85)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(conta.nome)
+                        .font(Tema.fonte(17, .semibold))
+                        .lineLimit(1)
+                    Text(conta.tipo.nome)
+                        .font(Tema.fonte(12, .medium))
+                        .opacity(0.72)
+                }
+                Spacer(minLength: 8)
+                if conta.principal {
+                    Text("PRINCIPAL")
+                        .font(Tema.fonte(10, .semibold))
+                        .tracking(1.2)
+                        .opacity(0.72)
+                }
             }
-
-            chip
-                .padding(.top, 18)
 
             Spacer(minLength: 12)
 
-            Text("••••  ••••  ••••  \(digitos)")
-                .font(.system(.callout, design: .monospaced).weight(.medium))
-                .gravado()
-
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .lastTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("SALDO")
-                        .font(.system(size: 9, weight: .semibold))
-                        .opacity(0.6)
-                    Text(FormatadorDeMoeda.texto(conta.saldoAtual))
-                        .font(Tema.fonte(18, .semibold))
-                        .monospacedDigit()
-                        .gravado()
+                    Text("Saldo")
+                        .font(Tema.fonte(11, .medium))
+                        .opacity(0.72)
+                    saldo
                 }
-                Spacer()
-                Text(conta.tipo.nome.uppercased())
-                    .font(.system(size: 10, weight: .semibold))
-                    .opacity(0.7)
+                Spacer(minLength: 8)
+                if descoberto {
+                    Text("A descoberto")
+                        .font(Tema.fonte(11, .semibold))
+                        .foregroundStyle(Tema.negativo)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Tema.fundoNegativo, in: Capsule())
+                        .environment(\.colorScheme, .light)
+                }
             }
-            .padding(.top, 12)
         }
         .padding(20)
         .foregroundStyle(corDaTinta)
         .frame(maxWidth: .infinity)
-        .aspectRatio(1.586, contentMode: .fit)
-        .background { fundo }
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .strokeBorder(.white.opacity(0.14), lineWidth: 1)
-        )
-        // Sombra curta e suave, como um cartão pousado na mesa.
-        .shadow(color: .black.opacity(0.18), radius: 10, y: 6)
+        .frame(height: 148)
+        .background {
+            RoundedRectangle(cornerRadius: Tema.Raio.cartao)
+                .fill(LinearGradient(colors: paleta, startPoint: .topLeading, endPoint: .bottomTrailing))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Tema.Raio.cartao)
+                        .strokeBorder(.white.opacity(0.14), lineWidth: 1)
+                )
+                .sombraDeCartao()
+        }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(conta.nome), \(conta.tipo.nome), saldo \(FormatadorDeMoeda.texto(conta.saldoAtual))")
+        .accessibilityLabel(rotulo)
+    }
+
+    /// Euros grandes e cêntimos menores, com o sinal "−" tipográfico.
+    private var saldo: some View {
+        let texto = FormatadorDeMoeda.texto(conta.saldoAtual)
+        let virgula = texto.lastIndex(of: ",") ?? texto.endIndex
+        return HStack(alignment: .firstTextBaseline, spacing: 0) {
+            Text(texto[..<virgula])
+                .font(Tema.fonte(28, .semibold))
+            Text(texto[virgula...])
+                .font(Tema.fonte(14, .medium))
+                .opacity(0.8)
+        }
+        .monospacedDigit()
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+    }
+
+    private var rotulo: String {
+        var partes = [conta.nome, conta.tipo.nome]
+        if conta.principal { partes.append("conta principal") }
+        partes.append("saldo \(FormatadorDeMoeda.falado(conta.saldoAtual))")
+        if descoberto { partes.append("a descoberto") }
+        return partes.joined(separator: ", ")
     }
 
     /// No cartão dourado a tinta é escura e fixa; nos restantes é branca.
     private var corDaTinta: Color {
         conta.principal ? Color(hex: "38342E") : .white
-    }
-
-    private var fundo: some View {
-        ZStack {
-            LinearGradient(colors: paleta, startPoint: .topLeading, endPoint: .bottomTrailing)
-            // Brilho de plástico a apanhar luz no canto superior.
-            RadialGradient(
-                colors: [.white.opacity(0.22), .clear],
-                center: .topLeading, startRadius: 0, endRadius: 260
-            )
-            // Reflexo diagonal fino a atravessar o cartão.
-            LinearGradient(
-                colors: [.clear, .white.opacity(0.07), .clear],
-                startPoint: .topTrailing, endPoint: .bottomLeading
-            )
-        }
-    }
-
-    /// O módulo EMV com as linhas de contacto. No cartão dourado o chip
-    /// é bronze escuro, para não se fundir com o plástico.
-    private var corDoChip: LinearGradient {
-        conta.principal
-            ? LinearGradient(
-                colors: [Color(hex: "5E4718"), Color(hex: "8C6A2C"), Color(hex: "B8934A")],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )
-            : Tema.douradoPolido
-    }
-
-    private var chip: some View {
-        RoundedRectangle(cornerRadius: 6)
-            .fill(corDoChip)
-            .frame(width: 46, height: 34)
-            .overlay {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 6)
-                        .strokeBorder(.black.opacity(0.25), lineWidth: 0.8)
-                    Path { caminho in
-                        caminho.move(to: CGPoint(x: 0, y: 11))
-                        caminho.addLine(to: CGPoint(x: 46, y: 11))
-                        caminho.move(to: CGPoint(x: 0, y: 23))
-                        caminho.addLine(to: CGPoint(x: 46, y: 23))
-                        caminho.move(to: CGPoint(x: 23, y: 11))
-                        caminho.addLine(to: CGPoint(x: 23, y: 23))
-                    }
-                    .stroke(.black.opacity(0.25), lineWidth: 0.8)
-                }
-            }
-            .shadow(color: .black.opacity(0.35), radius: 1, y: 1)
     }
 
     /// Paletas de cartão; a escolha é estável por nome, para cada conta
@@ -285,29 +449,23 @@ struct CartaoDeConta: View {
     private var paleta: [Color] {
         // A conta principal usa o dourado da identidade — é o cartão de ouro.
         if conta.principal {
-            return [Color(hex: "8C6A2C"), Color(hex: "C9A45A"), Color(hex: "E8CE8F")]
+            return [Color(hex: "B8934A"), Color(hex: "D4B06A"), Color(hex: "E8CE8F")]
         }
         let semente = conta.nome.unicodeScalars.reduce(0) { $0 + Int($1.value) }
         return Self.paletas[semente % Self.paletas.count]
     }
-
-    /// Quatro dígitos decorativos, estáveis por nome — nunca dados reais.
-    private var digitos: String {
-        let semente = conta.nome.unicodeScalars.reduce(7) { ($0 * 31 + Int($1.value)) % 10000 }
-        return String(format: "%04d", semente)
-    }
 }
 
-private extension View {
-    /// Texto "gravado" no plástico: sombra escura abaixo, luz acima.
-    func gravado() -> some View {
-        self
-            .shadow(color: .black.opacity(0.45), radius: 0.6, y: 0.8)
-            .shadow(color: .white.opacity(0.18), radius: 0.4, y: -0.5)
+private extension Array where Element == Conta {
+    /// A principal (o cartão dourado) vem sempre à frente do carrossel.
+    var ordenadasPorPrincipal: [Conta] {
+        sorted { ($0.principal ? 0 : 1, $0.nome) < ($1.principal ? 0 : 1, $1.nome) }
     }
 }
 
 #Preview {
-    ContasView()
-        .modelContainer(ContentorDeDados.emMemoria())
+    NavigationStack {
+        ContasView()
+    }
+    .modelContainer(ContentorDeDados.emMemoria())
 }

@@ -8,12 +8,14 @@ nonisolated enum TipoTransacao: String, Codable, CaseIterable {
     case receita
 }
 
-/// Como a transação entrou na app. `voz` e `talao` ficam reservados para fases futuras.
+/// Como a transação entrou na app.
 nonisolated enum OrigemTransacao: String, Codable, CaseIterable {
     case manual
     case texto
     case voz
     case talao
+    /// Via automação "Transação" dos Atalhos, a pagar com Apple Pay.
+    case applePay
 }
 
 @Model

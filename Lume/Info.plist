@@ -8,7 +8,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.aurea.lume</string>
+			<string>com.vitoriafonseca.lume</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>lume</string>
@@ -23,5 +23,7 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Usamos o Face ID só para desbloquear a Lume, se ativares essa opção no Perfil.</string>
 </dict>
 </plist>

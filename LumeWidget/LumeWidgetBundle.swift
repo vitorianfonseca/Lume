@@ -7,6 +7,7 @@ struct LumeWidgetBundle: WidgetBundle {
         WidgetDoMes()
         WidgetDosLimites()
         if #available(iOS 18.0, *) {
+            ControloDeRegistoGeral()
             ControloDeRegisto()
         }
     }

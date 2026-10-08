@@ -1,9 +1,10 @@
 import SwiftUI
 import SwiftData
 
-/// O Planear do Figma (ecrãs 03 e 04): dois segmentos — Orçamentos,
-/// com o total do mês e os limites por categoria; e Objetivos, com o
-/// total reservado e os planos de poupança.
+/// O Planear do Figma (ecrãs 08 e 09): dois segmentos — Orçamentos,
+/// com o orçamento do mês e os limites por categoria; e Objetivos, com o
+/// total reservado e os planos de poupança. O título é sempre "Planear":
+/// é o seletor que diz onde se está.
 struct OrcamentoView: View {
     private enum Segmento: String, CaseIterable {
         case orcamentos = "Orçamentos"
@@ -15,33 +16,40 @@ struct OrcamentoView: View {
     @Query(sort: \Categoria.ordem) private var categorias: [Categoria]
     @Query private var transacoes: [Transacao]
     @Query(sort: \Meta.nome) private var metas: [Meta]
+    @Query(sort: \Recorrente.diaDoMes) private var recorrentes: [Recorrente]
 
     @State private var segmento: Segmento
+    /// A mesma conta do Resumo: gasto, reservado e disponível batem certo.
+    @State private var calculoDoDia = HojeViewModel()
+    @State private var mostrarSegundaOpiniao = false
 
     /// O arranque nos Objetivos serve as pré-visualizações.
     init(mostrarObjetivos: Bool = false) {
         self.segmento = mostrarObjetivos ? .objetivos : .orcamentos
     }
     @State private var mostrarEditarLimites = false
+    @State private var mostrarDivisao = false
     @State private var mostrarNovoObjetivo = false
-    @State private var metaEmEdicao: Meta?
+    @State private var metaEmDetalhe: Meta?
     @State private var metaAReforcar: Meta?
+    @State private var mostrarMesesAnteriores = false
+    @State private var categoriaEmDetalhe: Categoria?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 CabecalhoDeEcra(
-                    legenda: segmento == .orcamentos
-                        ? "MAIS TRANQUILIDADE, TODOS OS DIAS"
-                        : "PEQUENOS PASSOS, PLANOS MAIORES",
-                    titulo: segmento == .orcamentos ? "Planear" : "Os teus objetivos"
+                    legenda: Date.now.formatted(.dateTime.month(.wide).year().locale(FormatadorDeMoeda.localidade)),
+                    titulo: "Planear"
                 )
-                .animation(.snappy, value: segmento)
-                .entrada()
 
-                seletorDeSegmento.entrada(0.05)
+                SeletorSegmentado(
+                    opcoes: Segmento.allCases,
+                    escolhida: $segmento,
+                    titulo: \.rawValue
+                )
 
-                // O conteúdo desliza ao trocar de segmento.
+                // O conteúdo desliza ao trocar de segmento (transição curta).
                 Group {
                     switch segmento {
                     case .orcamentos: orcamentos
@@ -52,61 +60,79 @@ struct OrcamentoView: View {
                     insertion: .move(edge: segmento == .objetivos ? .trailing : .leading).combined(with: .opacity),
                     removal: .opacity
                 ))
-                .entrada(0.1)
             }
             .padding(.horizontal, Tema.margemDoEcra)
             .padding(.top, 4)
             .padding(.bottom, 16)
         }
         .background(Tema.fundo)
+        .sheet(isPresented: $mostrarDivisao) {
+            DividirRendimentoView(valor: rendimentoDoMes)
+        }
         .sheet(isPresented: $mostrarEditarLimites) {
             EditarLimitesView(categorias: categorias)
         }
         .sheet(isPresented: $mostrarNovoObjetivo) {
             FormularioDeObjetivo(meta: nil)
         }
-        .sheet(item: $metaEmEdicao) { meta in
-            FormularioDeObjetivo(meta: meta)
+        .sheet(item: $metaEmDetalhe) { meta in
+            DetalheDoObjetivo(meta: meta, poupancaPorObjetivo: poupancaPorObjetivo)
         }
         .sheet(item: $metaAReforcar) { meta in
             ReforcoDeObjetivo(meta: meta)
         }
-    }
-
-    @Namespace private var espacoDoSeletor
-
-    private var seletorDeSegmento: some View {
-        HStack(spacing: 8) {
-            ForEach(Segmento.allCases, id: \.self) { opcao in
-                Button {
-                    withAnimation(.snappy) { segmento = opcao }
-                } label: {
-                    Text(opcao.rawValue)
-                        .font(Tema.fonte(12, segmento == opcao ? .semibold : .regular))
-                        .foregroundStyle(segmento == opcao ? Tema.douradoEscuro : Tema.tintaSuave)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 32)
-                        .background {
-                            // O fundo areia desliza entre as opções.
-                            if segmento == opcao {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Tema.areia)
-                                    .matchedGeometryEffect(id: "seletor", in: espacoDoSeletor)
-                            }
-                        }
-                }
-                .accessibilityAddTraits(segmento == opcao ? [.isSelected] : [])
+        .sheet(isPresented: $mostrarMesesAnteriores) {
+            MesesAnterioresView()
+        }
+        .sheet(item: $categoriaEmDetalhe) { categoria in
+            DetalheDoLimiteView(categoria: categoria, transacoes: transacoes)
+        }
+        .sheet(isPresented: $mostrarSegundaOpiniao) {
+            if let dia {
+                // O mesmo "disponível" do Resumo e do Planear.
+                SegundaOpiniaoView(
+                    disponivelDoMes: dia.disponivelAgora,
+                    diasRestantes: dia.diasRestantes
+                )
+            } else {
+                SegundaOpiniaoView(disponivelDoMes: .zero, diasRestantes: 1)
             }
         }
     }
 
-    // MARK: - Orçamentos (ecrã 03)
+    // MARK: - A conta do mês (partilhada com o Resumo)
 
-    private var rendimentoDoMes: Decimal {
+    /// O dia calculado pela mesma ponte do Resumo; `nil` sem rendimento.
+    private var dia: CalculadoraDoDia.Dia? {
+        let resultado = calculoDoDia.resultadoDoDia(
+            transacoes: transacoes,
+            recorrentes: recorrentes,
+            definicoes: definicoes
+        )
+        if case .calculado(let dia) = resultado { return dia }
+        return nil
+    }
+
+    private var definicoesDoMes: DefinicoesDoMes? {
         let calendario = Calendar.current
         let ano = calendario.component(.year, from: .now)
         let mes = calendario.component(.month, from: .now)
-        return definicoes.first { $0.ano == ano && $0.mes == mes }?.rendimentoEsperado ?? .zero
+        return definicoes.first { $0.ano == ano && $0.mes == mes }
+    }
+
+    private var rendimentoDoMes: Decimal {
+        definicoesDoMes?.rendimentoEsperado ?? .zero
+    }
+
+    /// Onde o mês vai (0…1), para o traço "hoje" na barra.
+    private var fracaoDoMes: Double {
+        let calendario = Calendar.current
+        let dias = calendario.range(of: .day, in: .month, for: .now)?.count ?? 30
+        return Double(calendario.component(.day, from: .now)) / Double(dias)
+    }
+
+    private var nomeDoMes: String {
+        Date.now.formatted(.dateTime.month(.wide).locale(FormatadorDeMoeda.localidade)).lowercased()
     }
 
     private var gastoDoMesTotal: Decimal {
@@ -118,60 +144,149 @@ struct OrcamentoView: View {
 
     private var comOrcamento: [Categoria] { categorias.filter { $0.orcamentoMensal != nil } }
 
+    // MARK: - Orçamentos (ecrã 08)
+
     @ViewBuilder
     private var orcamentos: some View {
-        // O cartão branco do frame: mês, total 31 Medium, barra e utilização.
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(Date.now.formatted(.dateTime.month(.wide).locale(FormatadorDeMoeda.localidade)).capitalized)
-                    .font(Tema.fonte(14, .medium))
-                    .foregroundStyle(Tema.tinta)
-                Spacer()
-                Button("Editar limites") { mostrarEditarLimites = true }
-                    .font(Tema.fonte(12, .medium))
-                    .foregroundStyle(Tema.douradoEscuro)
+        cartaoDoMes
+
+        // As duas ações de apoio: um só estilo, lado a lado.
+        HStack(spacing: 10) {
+            BotaoLume(titulo: "Dividir rendimento", simbolo: "chart.pie.fill", estilo: .secundario) {
+                mostrarDivisao = true
             }
-
-            Text(FormatadorDeMoeda.texto(rendimentoDoMes))
-                .font(Tema.fonte(31, .medium))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .foregroundStyle(Tema.tinta)
-
-            BarraDeProgresso(fracao: fracaoUtilizada)
-
-            Text(resumoDeUtilizacao)
-                .font(Tema.fonte(12))
-                .foregroundStyle(Tema.tintaSuave)
+            BotaoLume(titulo: "Vale a pena?", simbolo: "sparkle.magnifyingglass", estilo: .secundario) {
+                mostrarSegundaOpiniao = true
+            }
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
-        .overlay(
-            RoundedRectangle(cornerRadius: Tema.Raio.cartao)
-                .strokeBorder(Tema.separador, lineWidth: 1)
-        )
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
 
         if comOrcamento.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Sem limites definidos")
-                    .font(Tema.fonte(17, .semibold))
-                    .foregroundStyle(Tema.tinta)
-                Text("Toca em \"Editar limites\" para distribuir o orçamento pelas categorias.")
-                    .font(Tema.fonte(13))
-                    .foregroundStyle(Tema.tintaSuave)
-            }
-            .padding(.top, 8)
+            EstadoVazio(
+                ilustracao: .graficos,
+                titulo: "Sem limites definidos",
+                texto: "Toca em \"Editar limites\" para distribuir o orçamento pelas categorias."
+            )
         } else {
-            // Linhas de 74 pt encostadas, como no frame (gap 2).
-            VStack(alignment: .leading, spacing: 2) {
+            TituloDeSeccao(titulo: "Limites por categoria")
+                .padding(.top, 6)
+
+            // Uma só lista agrupada, como no Perfil: linhas separadas por filetes.
+            VStack(spacing: 0) {
                 ForEach(comOrcamento) { categoria in
-                    LinhaDeOrcamento(categoria: categoria, gasto: gastoDoMes(em: categoria))
+                    Button { categoriaEmDetalhe = categoria } label: {
+                        LinhaDeOrcamento(categoria: categoria, gasto: gastoDoMes(em: categoria))
+                    }
+                    .buttonStyle(.plain)
+                    if categoria.persistentModelID != comOrcamento.last?.persistentModelID {
+                        Divider().overlay(Tema.separador)
+                            .padding(.leading, 50)
+                    }
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 4)
+            .cartao()
         }
 
         insights
+
+        Button { mostrarMesesAnteriores = true } label: {
+            HStack {
+                Text("Meses anteriores")
+                    .font(Tema.fonte(15, .medium))
+                    .foregroundStyle(Tema.tinta)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Tema.placeholder)
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 50)
+            .cartao()
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// O cartão do mês: rótulo, orçamento, barra com o traço de hoje e a
+    /// conta à vista — gasto + reservado + disponível = orçamento.
+    private var cartaoDoMes: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Legenda("Orçamento de \(nomeDoMes)")
+                Spacer()
+                Button("Editar limites") { mostrarEditarLimites = true }
+                    .font(Tema.fonte(12, .medium))
+                    .textoDourado()
+            }
+
+            HStack(alignment: .center) {
+                ValorEmEuros(valor: rendimentoDoMes, tamanho: 36)
+                Spacer(minLength: 8)
+                Ilustracao(tipo: .graficos, escala: 0.42)
+            }
+
+            if let dia {
+                BarraDeProgresso(fracao: fracao(dia.gastoDoMes, de: rendimentoDoMes), comEstado: true, marcador: fracaoDoMes)
+                    .padding(.vertical, 3)
+
+                Text(resumoDeUtilizacao(dia))
+                    .font(Tema.fonte(12))
+                    .foregroundStyle(Tema.tintaSuave)
+
+                Divider().overlay(Tema.separador)
+                    .padding(.vertical, 2)
+
+                HStack(alignment: .top, spacing: 8) {
+                    parcela("Gasto", dia.gastoDoMes)
+                    parcela("Reservado", dia.reservado)
+                    parcela(
+                        "Disponível",
+                        dia.disponivelAgora,
+                        cor: dia.disponivelAgora < .zero ? Tema.negativo : Tema.tinta
+                    )
+                }
+            } else {
+                BarraDeProgresso(fracao: 0)
+                Text("Define o orçamento do mês em \"Editar limites\".")
+                    .font(Tema.fonte(12))
+                    .foregroundStyle(Tema.tintaSuave)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cartao()
+    }
+
+    private func parcela(_ titulo: String, _ valor: Decimal, cor: Color = Tema.tinta) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(titulo)
+                .font(Tema.fonte(11))
+                .foregroundStyle(Tema.tintaSuave)
+            Text(FormatadorDeMoeda.texto(valor))
+                .font(Tema.fonte(14, .semibold))
+                .monospacedDigit()
+                .foregroundStyle(cor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(titulo): \(FormatadorDeMoeda.falado(valor))")
+    }
+
+    private func resumoDeUtilizacao(_ dia: CalculadoraDoDia.Dia) -> String {
+        let calendario = Calendar.current
+        let dias = calendario.range(of: .day, in: .month, for: .now)?.count ?? 30
+        let hoje = calendario.component(.day, from: .now)
+        let percentagem = Int((fracao(dia.gastoDoMes, de: rendimentoDoMes) * 100).rounded())
+        return "\(percentagem)% gasto · hoje é dia \(hoje) de \(dias)"
+    }
+
+    private func fracao(_ parte: Decimal, de todo: Decimal) -> Double {
+        guard todo > .zero else { return 0 }
+        return (parte as NSDecimalNumber).doubleValue / (todo as NSDecimalNumber).doubleValue
     }
 
     // MARK: - Insights (contas feitas pela app, sem IA)
@@ -231,21 +346,19 @@ struct OrcamentoView: View {
 
         if passado > .zero || atual > .zero {
             VStack(alignment: .leading, spacing: 8) {
-                Text("TENDÊNCIAS")
-                    .font(Tema.fonte(11, .semibold))
-                    .foregroundStyle(Tema.douradoEscuro)
+                Legenda("Tendências")
 
                 if passado > .zero {
                     let diferenca = atual - passado
                     Text(diferenca <= .zero
-                        ? "Levas menos \(FormatadorDeMoeda.textoSimples(-diferenca)) € do que no mês passado por esta altura."
-                        : "Levas mais \(FormatadorDeMoeda.textoSimples(diferenca)) € do que no mês passado por esta altura.")
+                        ? "Levas menos \(FormatadorDeMoeda.texto(-diferenca)) do que no mês passado por esta altura."
+                        : "Levas mais \(FormatadorDeMoeda.texto(diferenca)) do que no mês passado por esta altura.")
                         .font(Tema.fonte(13))
                         .foregroundStyle(diferenca <= .zero ? Tema.positivo : Tema.tinta)
                 }
 
                 if let crescimento = categoriaQueMaisCresce {
-                    Text("\(crescimento.nome) é onde mais cresces: +\(FormatadorDeMoeda.textoSimples(crescimento.diferenca)) €.")
+                    Text("\(crescimento.nome) é onde mais cresces: +\(FormatadorDeMoeda.texto(crescimento.diferenca)).")
                         .font(Tema.fonte(13))
                         .foregroundStyle(Tema.tintaSuave)
                 }
@@ -256,26 +369,9 @@ struct OrcamentoView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(18)
-            .background(Tema.bege, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+            .cartao(Tema.bege)
             .accessibilityElement(children: .combine)
         }
-    }
-
-    private var fracaoUtilizada: Double {
-        guard rendimentoDoMes > .zero else { return 0 }
-        return (gastoDoMesTotal as NSDecimalNumber).doubleValue
-            / (rendimentoDoMes as NSDecimalNumber).doubleValue
-    }
-
-    private var resumoDeUtilizacao: String {
-        guard rendimentoDoMes > .zero else {
-            return "Define o orçamento do mês em \"Editar limites\"."
-        }
-        let fracao = (gastoDoMesTotal as NSDecimalNumber).doubleValue
-            / (rendimentoDoMes as NSDecimalNumber).doubleValue
-        let percentagem = Int((fracao * 100).rounded())
-        let disponivel = rendimentoDoMes - gastoDoMesTotal
-        return "\(percentagem)% utilizado · \(FormatadorDeMoeda.texto(disponivel)) ainda disponíveis"
     }
 
     private func gastoDoMes(em categoria: Categoria) -> Decimal {
@@ -289,146 +385,438 @@ struct OrcamentoView: View {
             .reduce(.zero) { $0 + $1.valor }
     }
 
-    // MARK: - Objetivos (ecrã 04)
+    // MARK: - Objetivos (ecrã 09)
 
     private var totalReservado: Decimal {
         metas.reduce(.zero) { $0 + $1.valorPoupado }
     }
 
+    /// A parte da poupança planeada do mês que cabe a cada objetivo ainda
+    /// por cumprir (dividida em partes iguais) — a base do "no ritmo".
+    private var poupancaPorObjetivo: Decimal {
+        let porCumprir = metas.filter { $0.valorPoupado < $0.valorAlvo }.count
+        guard porCumprir > 0 else { return .zero }
+        return (definicoesDoMes?.poupancaPlaneada ?? .zero) / Decimal(porCumprir)
+    }
+
     @ViewBuilder
     private var objetivos: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("JÁ RESERVASTE")
-                .font(Tema.fonte(11, .semibold))
-                .foregroundStyle(Tema.douradoEscuro)
-            Text(FormatadorDeMoeda.texto(totalReservado))
-                .font(Tema.fonte(35, .medium))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .foregroundStyle(Tema.tinta)
-            Text("reservado para os teus planos · continua assim")
-                .font(Tema.fonte(12, .medium))
-                .foregroundStyle(Tema.positivo)
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) {
+                Legenda("Já reservaste")
+                ValorEmEuros(valor: totalReservado, tamanho: 35, peso: .medium)
+                Text(metas.count == 1 ? "para o teu objetivo" : "para os teus \(metas.count) objetivos")
+                    .font(Tema.fonte(12, .medium))
+                    .foregroundStyle(Tema.tintaSuave)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // Com objetivos, o frasco acompanha o total; sem eles, aparece
+            // em grande no estado vazio mais abaixo.
+            if !metas.isEmpty {
+                Ilustracao(tipo: .frasco, escala: 0.5)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
-        .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+        .cartaoCafe()
+
+        if metas.isEmpty {
+            EstadoVazio(
+                ilustracao: .frasco,
+                titulo: "Ainda sem objetivos",
+                texto: "Uma viagem, um fundo de emergência, um portátil novo. Começa por um pequeno."
+            )
+        }
 
         ForEach(metas) { meta in
-            linhaDeObjetivo(meta)
+            CartaoDeObjetivo(
+                meta: meta,
+                ritmo: RitmoDoObjetivo(meta: meta, poupancaPorObjetivo: poupancaPorObjetivo),
+                aoAbrir: { metaEmDetalhe = meta },
+                aoReforcar: { metaAReforcar = meta }
+            )
+            // Um objetivo novo cresce para o lugar; um eliminado encolhe.
+            .transition(.scale(scale: 0.92).combined(with: .opacity))
         }
+        .animation(.snappy, value: metas.count)
 
-        Button {
+        BotaoLume(titulo: "Criar novo objetivo", simbolo: "plus") {
             mostrarNovoObjetivo = true
-        } label: {
-            Text("Criar novo objetivo")
-                .font(Tema.fonte(15, .semibold))
-                .foregroundStyle(Color(hex: "302B24"))
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
         }
-        .buttonStyle(EscalaAoTocar())
         .padding(.top, 4)
-    }
-
-    private func fracao(de meta: Meta) -> Double {
-        guard meta.valorAlvo > .zero else { return 0 }
-        return (meta.valorPoupado as NSDecimalNumber).doubleValue
-            / (meta.valorAlvo as NSDecimalNumber).doubleValue
-    }
-
-    /// O cartão de objetivo do frame: título 17 SemiBold com o alvo à
-    /// direita, valor 24 Medium e "Reforçar objetivo +" em dourado.
-    private func linhaDeObjetivo(_ meta: Meta) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(meta.nome)
-                    .font(Tema.fonte(17, .semibold))
-                    .foregroundStyle(Tema.tinta)
-                Spacer()
-                Image(systemName: meta.simbolo)
-                    .font(.system(size: 16))
-                    .foregroundStyle(Tema.douradoEscuro)
-            }
-
-            if let descricao = meta.descricao, !descricao.isEmpty {
-                Text(descricao)
-                    .font(Tema.fonte(12))
-                    .foregroundStyle(Tema.tintaSuave)
-            }
-
-            HStack(alignment: .firstTextBaseline) {
-                Text("\(FormatadorDeMoeda.textoInteiroAgrupado(meta.valorPoupado)) €")
-                    .font(Tema.fonte(24, .medium))
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .foregroundStyle(Tema.tinta)
-                Spacer()
-                Text("de \(FormatadorDeMoeda.textoInteiroAgrupado(meta.valorAlvo)) €")
-                    .font(Tema.fonte(12))
-                    .monospacedDigit()
-                    .foregroundStyle(Tema.tintaSuave)
-            }
-
-            BarraDeProgresso(fracao: fracao(de: meta))
-
-            HStack {
-                Text("\(Int((fracao(de: meta) * 100).rounded()))% concluído")
-                    .font(Tema.fonte(11))
-                    .foregroundStyle(Tema.tintaSuave)
-                Spacer()
-                Button("Reforçar objetivo  +") { metaAReforcar = meta }
-                    .font(Tema.fonte(12, .medium))
-                    .foregroundStyle(Tema.douradoEscuro)
-            }
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
-        .overlay(
-            RoundedRectangle(cornerRadius: Tema.Raio.cartao)
-                .strokeBorder(Tema.separador, lineWidth: 1)
-        )
-        .contentShape(Rectangle())
-        .onTapGesture { metaEmEdicao = meta }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
     }
 }
 
-/// Linha de limite do ecrã 03: nome, "441 / 450 €", barra dourada
-/// e "9 € disponíveis" por baixo.
+// MARK: - Ritmo de um objetivo
+
+/// Prazo e ritmo de um objetivo: quanto falta, quanto é preciso por mês
+/// até ao prazo e se se está no ritmo.
+///
+/// Regra do estado: o `Meta` não guarda a data de início nem o histórico
+/// de reforços, por isso não dá para comparar com uma linha reta desde o
+/// início. Em vez disso, compara-se o que é preciso por mês até ao prazo
+/// com a parte da poupança planeada do mês que cabe a este objetivo
+/// (a poupança dividida pelos objetivos por cumprir). Se chega, está
+/// "no ritmo"; se não chega (ou o prazo já passou), está "atrasado".
+private struct RitmoDoObjetivo {
+    enum Estado {
+        case concluido, noRitmo, atrasado, semPrazo
+
+        var titulo: String {
+            switch self {
+            case .concluido: "Concluído"
+            case .noRitmo: "No ritmo"
+            case .atrasado: "Atrasado"
+            case .semPrazo: "Sem prazo"
+            }
+        }
+    }
+
+    let falta: Decimal
+    /// Meses até ao prazo, contando o atual (pelo menos 1).
+    let meses: Int?
+    let porMes: Decimal?
+    let prazo: Date?
+    let estado: Estado
+
+    init(meta: Meta, poupancaPorObjetivo: Decimal, hoje: Date = .now, calendario: Calendar = .current) {
+        let falta = max(meta.valorAlvo - meta.valorPoupado, .zero)
+        self.falta = falta
+        prazo = meta.dataLimite
+        var meses: Int?
+        if let prazo = meta.dataLimite {
+            let inicio = calendario.dateInterval(of: .month, for: hoje)?.start ?? hoje
+            let diferenca = calendario.dateComponents([.month], from: inicio, to: prazo).month ?? 0
+            meses = max(diferenca + 1, 1)
+        }
+        self.meses = meses
+        let porMes = meses.map { AjusteDaDivisao.arredondarParaCima(falta / Decimal($0)) }
+        self.porMes = porMes
+
+        if falta <= .zero {
+            estado = .concluido
+        } else if let prazo, let porMes {
+            estado = prazo < hoje || porMes > poupancaPorObjetivo ? .atrasado : .noRitmo
+        } else {
+            estado = .semPrazo
+        }
+    }
+
+    /// "Faltam 2 150 € · 179 €/mês até dez. 2027".
+    var frase: String {
+        guard falta > .zero else { return "Objetivo cumprido" }
+        let faltam = "Faltam \(FormatadorDeMoeda.textoInteiroAgrupado(AjusteDaDivisao.arredondarParaCima(falta))) €"
+        guard let porMes, let prazo else { return faltam + " · sem prazo" }
+        return "\(faltam) · \(FormatadorDeMoeda.textoInteiroAgrupado(porMes)) €/mês até \(Self.mesCurto(prazo))"
+    }
+
+    /// "dez. 2027".
+    static func mesCurto(_ data: Date) -> String {
+        let mes = data.formatted(.dateTime.month(.abbreviated).locale(FormatadorDeMoeda.localidade))
+        let ano = Calendar.current.component(.year, from: data)
+        return "\(mes) \(ano)"
+    }
+}
+
+/// O selo do estado: neutro quando corre bem, âmbar quando está atrasado.
+private struct SeloDeRitmo: View {
+    let estado: RitmoDoObjetivo.Estado
+
+    var body: some View {
+        let (texto, fundo): (Color, Color) = estado == .atrasado
+            ? (Tema.aviso, Tema.fundoDoAviso)
+            : (Tema.tintaSuave, Tema.bege)
+        Text(estado.titulo)
+            .font(Tema.fonte(11, .semibold))
+            .foregroundStyle(texto)
+            .padding(.horizontal, 8)
+            .frame(height: 22)
+            .background(fundo, in: Capsule())
+    }
+}
+
+/// O cartão de objetivo: ícone 3D, nome e estado; o valor com cêntimos
+/// pequenos, a barra, o prazo e o ritmo; e "+ Reforçar".
+private struct CartaoDeObjetivo: View {
+    let meta: Meta
+    let ritmo: RitmoDoObjetivo
+    let aoAbrir: () -> Void
+    let aoReforcar: () -> Void
+
+    private var fracao: Double {
+        guard meta.valorAlvo > .zero else { return 0 }
+        return (meta.valorPoupado as NSDecimalNumber).doubleValue / (meta.valorAlvo as NSDecimalNumber).doubleValue
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Tocar no cartão abre o detalhe.
+            Button(action: aoAbrir) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 12) {
+                        IconeDourado(simbolo: meta.simbolo, lado: 42)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(meta.nome)
+                                .font(Tema.fonte(16, .semibold))
+                                .foregroundStyle(Tema.tinta)
+                            if let descricao = meta.descricao, !descricao.isEmpty {
+                                Text(descricao)
+                                    .font(Tema.fonte(12))
+                                    .foregroundStyle(Tema.tintaSuave)
+                                    .lineLimit(1)
+                            }
+                        }
+                        Spacer(minLength: 8)
+                        // "Sem prazo" já se lê na frase do ritmo.
+                        if ritmo.estado != .semPrazo {
+                            SeloDeRitmo(estado: ritmo.estado)
+                        }
+                    }
+
+                    HStack(alignment: .firstTextBaseline) {
+                        ValorEmEuros(valor: meta.valorPoupado, tamanho: 24, peso: .medium)
+                        Spacer()
+                        Text("de \(FormatadorDeMoeda.texto(meta.valorAlvo))")
+                            .font(Tema.fonte(12))
+                            .monospacedDigit()
+                            .foregroundStyle(Tema.tintaSuave)
+                    }
+
+                    BarraDeProgresso(fracao: fracao)
+
+                    Text(ritmo.frase)
+                        .font(Tema.fonte(12))
+                        .monospacedDigit()
+                        .foregroundStyle(Tema.tinta)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityHint("Abre o detalhe do objetivo")
+
+            HStack {
+                Text("\(Int((fracao * 100).rounded()))% concluído")
+                    .font(Tema.fonte(11))
+                    .foregroundStyle(Tema.tintaSuave)
+                Spacer()
+                // Botão pequeno, com o "+" à esquerda.
+                Button(action: aoReforcar) {
+                    Label("Reforçar", systemImage: "plus")
+                        .font(Tema.fonte(13, .semibold))
+                        .padding(.horizontal, 12)
+                        .frame(height: 32)
+                }
+                .buttonStyle(EstiloDeBotaoLume(estilo: .secundario))
+                .accessibilityLabel("Reforçar \(meta.nome)")
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cartao()
+    }
+}
+
+/// O detalhe de um objetivo: o progresso, o prazo, o ritmo e as ações.
+private struct DetalheDoObjetivo: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let meta: Meta
+    let poupancaPorObjetivo: Decimal
+
+    @Query(sort: \ReforcoDaMeta.data, order: .reverse) private var todosOsReforcos: [ReforcoDaMeta]
+
+    @State private var aReforcar = false
+    @State private var aEditar = false
+
+    /// Só os reforços deste objetivo — filtrado aqui porque o predicado do
+    /// `@Query` não consegue capturar a instância de `meta`.
+    private var reforcos: [ReforcoDaMeta] {
+        todosOsReforcos.filter { $0.meta?.persistentModelID == meta.persistentModelID }
+    }
+
+    private var ritmo: RitmoDoObjetivo {
+        RitmoDoObjetivo(meta: meta, poupancaPorObjetivo: poupancaPorObjetivo)
+    }
+
+    private var fracao: Double {
+        guard meta.valorAlvo > .zero else { return 0 }
+        return (meta.valorPoupado as NSDecimalNumber).doubleValue / (meta.valorAlvo as NSDecimalNumber).doubleValue
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                CabecalhoDeEcra(legenda: "Objetivo", titulo: meta.nome, aoVoltar: { dismiss() }, simboloDeVoltar: "xmark")
+
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Legenda("Já guardaste")
+                            ValorEmEuros(valor: meta.valorPoupado, tamanho: 34, peso: .medium)
+                            Text("de \(FormatadorDeMoeda.texto(meta.valorAlvo))")
+                                .font(Tema.fonte(13))
+                                .monospacedDigit()
+                                .foregroundStyle(Tema.tintaSuave)
+                        }
+                        Spacer()
+                        IconeDourado(simbolo: meta.simbolo, lado: 56)
+                    }
+                    BarraDeProgresso(fracao: fracao)
+                    HStack {
+                        Text("\(Int((fracao * 100).rounded()))% concluído")
+                            .font(Tema.fonte(12))
+                            .foregroundStyle(Tema.tintaSuave)
+                        Spacer()
+                        SeloDeRitmo(estado: ritmo.estado)
+                    }
+                }
+                .padding(20)
+                .cartao()
+
+                VStack(spacing: 0) {
+                    linha("Falta", FormatadorDeMoeda.texto(ritmo.falta))
+                    Divider().overlay(Tema.separador)
+                    linha("Prazo", meta.dataLimite.map {
+                        $0.formatted(.dateTime.day().month(.wide).year().locale(FormatadorDeMoeda.localidade))
+                    } ?? "Sem prazo")
+                    if let porMes = ritmo.porMes, let meses = ritmo.meses {
+                        Divider().overlay(Tema.separador)
+                        linha("Por mês", "\(FormatadorDeMoeda.texto(porMes)) · \(meses) \(meses == 1 ? "mês" : "meses")")
+                        Divider().overlay(Tema.separador)
+                        linha("Poupança do mês para este objetivo", FormatadorDeMoeda.texto(poupancaPorObjetivo.arredondadoACentimos()))
+                    }
+                }
+                .padding(.horizontal, 16)
+                .cartao()
+
+                if !reforcos.isEmpty {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Legenda("Histórico de reforços")
+                            .padding(.top, 14)
+                        ForEach(reforcos) { reforco in
+                            HStack(alignment: .firstTextBaseline) {
+                                Text(reforco.data.formatted(
+                                    .dateTime.day().month(.wide).locale(FormatadorDeMoeda.localidade)
+                                ))
+                                .font(Tema.fonte(14))
+                                .foregroundStyle(Tema.tintaSuave)
+                                Spacer(minLength: 12)
+                                Text("+\(FormatadorDeMoeda.texto(reforco.valor))")
+                                    .font(Tema.fonte(14, .medium))
+                                    .monospacedDigit()
+                                    .foregroundStyle(Tema.positivo)
+                            }
+                            .padding(.vertical, 10)
+                            .accessibilityElement(children: .combine)
+                            if reforco.persistentModelID != reforcos.last?.persistentModelID {
+                                Divider().overlay(Tema.separador)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .cartao()
+                }
+
+                if let descricao = meta.descricao, !descricao.isEmpty {
+                    Text(descricao)
+                        .font(Tema.fonte(13))
+                        .foregroundStyle(Tema.tintaSuave)
+                }
+
+                Text(explicacao)
+                    .font(Tema.fonte(12))
+                    .foregroundStyle(Tema.tintaSuave)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                VStack(spacing: 10) {
+                    BotaoLume(titulo: "Reforçar objetivo", simbolo: "plus") { aReforcar = true }
+                    BotaoLume(titulo: "Editar objetivo", simbolo: "pencil", estilo: .secundario) { aEditar = true }
+                }
+            }
+            .padding(.horizontal, Tema.margemDoEcra)
+            .padding(.top, 18)
+            .padding(.bottom, 16)
+        }
+        .background(Tema.fundo)
+        .presentationDragIndicator(.visible)
+        .sheet(isPresented: $aReforcar) {
+            ReforcoDeObjetivo(meta: meta)
+        }
+        .sheet(isPresented: $aEditar) {
+            // Se o objetivo for eliminado, o detalhe fecha também.
+            FormularioDeObjetivo(meta: meta, aoEliminar: { dismiss() })
+        }
+    }
+
+    private var explicacao: String {
+        switch ritmo.estado {
+        case .concluido: "Chegaste ao valor. Podes manter o objetivo ou criar um novo."
+        case .noRitmo: "A poupança planeada para este mês chega para o ritmo que o prazo pede."
+        case .atrasado: "A poupança planeada não chega para o prazo. Reforça, aumenta a poupança do mês ou adia a data."
+        case .semPrazo: "Define uma data para a Lume calcular quanto precisas de guardar por mês."
+        }
+    }
+
+    private func linha(_ rotulo: String, _ valor: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(rotulo)
+                .font(Tema.fonte(14))
+                .foregroundStyle(Tema.tintaSuave)
+            Spacer(minLength: 12)
+            Text(valor)
+                .font(Tema.fonte(14, .medium))
+                .monospacedDigit()
+                .foregroundStyle(Tema.tinta)
+                .multilineTextAlignment(.trailing)
+        }
+        .padding(.vertical, 12)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Linha de limite na lista agrupada: ícone, nome e percentagem, barra com
+/// cor de estado, "148,58 € de 160 €" e o que sobra — ou "Passaste X €".
 private struct LinhaDeOrcamento: View {
     let categoria: Categoria
     let gasto: Decimal
 
     var body: some View {
-        // O componente "Lume / Categoria de orçamento": 74 pt, nome 14 Medium,
-        // valores 12 ("142,80 / 180 €"), barra 5 e "disponíveis" em 11.
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(categoria.nome)
-                    .font(Tema.fonte(14, .medium))
-                    .foregroundStyle(Tema.tinta)
-                Spacer()
-                Text("\(FormatadorDeMoeda.textoSimples(gasto)) / \(FormatadorDeMoeda.textoSimples(orcamento)) €")
-                    .font(Tema.fonte(12))
-                    .monospacedDigit()
-                    .foregroundStyle(Tema.tintaSuave)
-            }
-
-            BarraDeProgresso(fracao: fracao)
-
-            Text(legendaDisponivel)
+        HStack(alignment: .top, spacing: 12) {
+            IconeDeCategoria(categoria: categoria, lado: 38)
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(alignment: .center) {
+                    Text(categoria.nome)
+                        .font(Tema.fonte(15, .semibold))
+                        .foregroundStyle(Tema.tinta)
+                    Spacer()
+                    CapsulaDePercentagem(fracao: fracao)
+                }
+                BarraDeProgresso(fracao: fracao, comEstado: true)
+                HStack {
+                    // O formato partilhado com o Resumo.
+                    Text(FormatadorDeMoeda.texto(gasto) + " de " + FormatadorDeMoeda.textoInteiroAgrupado(orcamento) + " €")
+                        .monospacedDigit()
+                        .foregroundStyle(Tema.tinta)
+                    Spacer()
+                    Text(legendaDisponivel)
+                        .monospacedDigit()
+                        .fontWeight(ultrapassado ? .semibold : .regular)
+                        .foregroundStyle(ultrapassado ? Tema.negativo : Tema.tintaSuave)
+                }
                 .font(Tema.fonte(11))
-                .foregroundStyle(Tema.tintaSuave)
+            }
         }
-        .frame(height: 74)
+        .padding(.vertical, 12)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(categoria.nome): \(FormatadorDeMoeda.texto(gasto)) de \(FormatadorDeMoeda.texto(orcamento))")
+        .accessibilityLabel("\(categoria.nome): \(FormatadorDeMoeda.texto(gasto)) de \(FormatadorDeMoeda.texto(orcamento)). \(legendaDisponivel)")
     }
 
     private var orcamento: Decimal { categoria.orcamentoMensal ?? .zero }
+
+    private var ultrapassado: Bool { orcamento > .zero && gasto > orcamento }
 
     private var fracao: Double {
         guard orcamento > .zero else { return 0 }
@@ -438,9 +826,96 @@ private struct LinhaDeOrcamento: View {
     private var legendaDisponivel: String {
         let restante = orcamento - gasto
         guard restante >= .zero else {
-            return "\(FormatadorDeMoeda.textoSimples(-restante)) € acima do limite"
+            return "Passaste \(FormatadorDeMoeda.texto(-restante))"
         }
-        return "\(FormatadorDeMoeda.textoSimples(restante)) € disponíveis"
+        return "\(FormatadorDeMoeda.texto(restante)) disponíveis"
+    }
+}
+
+/// O detalhe de um limite: o mesmo resumo da linha, maior, e os movimentos
+/// do mês nesta categoria — para perceber de onde vem o número, não só vê-lo.
+private struct DetalheDoLimiteView: View {
+    @Environment(\.dismiss) private var dismiss
+    let categoria: Categoria
+    let transacoes: [Transacao]
+
+    private var movimentosDoMes: [Transacao] {
+        let calendario = Calendar.current
+        return transacoes
+            .filter {
+                $0.tipo == .despesa
+                    && $0.categoria?.persistentModelID == categoria.persistentModelID
+                    && calendario.isDate($0.data, equalTo: .now, toGranularity: .month)
+            }
+            .sorted { $0.data > $1.data }
+    }
+
+    private var gasto: Decimal { movimentosDoMes.reduce(.zero) { $0 + $1.valor } }
+    private var orcamento: Decimal { categoria.orcamentoMensal ?? .zero }
+
+    private var fracao: Double {
+        guard orcamento > .zero else { return 0 }
+        return (gasto as NSDecimalNumber).doubleValue / (orcamento as NSDecimalNumber).doubleValue
+    }
+
+    private var legendaDisponivel: String {
+        let restante = orcamento - gasto
+        guard restante >= .zero else { return "Passaste \(FormatadorDeMoeda.texto(-restante))" }
+        return "\(FormatadorDeMoeda.texto(restante)) disponíveis"
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                CabecalhoDeEcra(legenda: "Limite por categoria", titulo: categoria.nome, aoVoltar: { dismiss() }, simboloDeVoltar: "xmark")
+
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 12) {
+                        IconeDeCategoria(categoria: categoria, lado: 44)
+                        VStack(alignment: .leading, spacing: 2) {
+                            ValorEmEuros(valor: gasto, tamanho: 26)
+                            Text("de \(FormatadorDeMoeda.texto(orcamento)) este mês")
+                                .font(Tema.fonte(12))
+                                .foregroundStyle(Tema.tintaSuave)
+                        }
+                        Spacer()
+                        CapsulaDePercentagem(fracao: fracao)
+                    }
+                    BarraDeProgresso(fracao: fracao, comEstado: true)
+                    Text(legendaDisponivel)
+                        .font(Tema.fonte(13, .medium))
+                        .foregroundStyle(orcamento > .zero && gasto > orcamento ? Tema.negativo : Tema.tintaSuave)
+                }
+                .padding(20)
+                .cartao()
+
+                if movimentosDoMes.isEmpty {
+                    EstadoVazio(
+                        ilustracao: .lupa,
+                        titulo: "Sem movimentos",
+                        texto: "Ainda não há despesas em \(categoria.nome) este mês."
+                    )
+                } else {
+                    TituloDeSeccao(titulo: "Movimentos do mês")
+                    VStack(spacing: 0) {
+                        ForEach(movimentosDoMes) { transacao in
+                            LinhaDeTransacao(transacao: transacao, estilo: .extrato)
+                            if transacao.persistentModelID != movimentosDoMes.last?.persistentModelID {
+                                Divider().overlay(Tema.separador)
+                                    .padding(.leading, 50)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .cartao()
+                }
+            }
+            .padding(.horizontal, Tema.margemDoEcra)
+            .padding(.top, 18)
+            .padding(.bottom, 16)
+        }
+        .background(Tema.fundo)
+        .presentationDragIndicator(.visible)
     }
 }
 
@@ -454,10 +929,6 @@ private struct EditarLimitesView: View {
 
     /// 0 = mês atual; recuar 1 para corrigir, avançar até 6 para planear.
     @State private var deslocacaoDeMes = 0
-
-    private var moeda: Decimal.FormatStyle.Currency {
-        .currency(code: "EUR").locale(FormatadorDeMoeda.localidade)
-    }
 
     private var dataSelecionada: Date {
         Calendar.current.date(byAdding: .month, value: deslocacaoDeMes, to: .now) ?? .now
@@ -486,14 +957,17 @@ private struct EditarLimitesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 CabecalhoDeEcra(
-                    legenda: dataSelecionada.formatted(.dateTime.month(.wide).year().locale(FormatadorDeMoeda.localidade)).uppercased(),
-                    titulo: "Editar limites"
+                    legenda: dataSelecionada.formatted(.dateTime.month(.wide).year().locale(FormatadorDeMoeda.localidade)),
+                    titulo: "Editar limites",
+                    aoVoltar: { dismiss() },
+                    simboloDeVoltar: "xmark"
                 )
 
                 // Setas para corrigir o mês anterior ou planear os próximos.
                 HStack {
                     Button { deslocacaoDeMes -= 1 } label: { Image(systemName: "chevron.left") }
                         .disabled(deslocacaoDeMes <= -1)
+                        .accessibilityLabel("Mês anterior")
                     Spacer()
                     Text(deslocacaoDeMes == 0 ? "Este mês" : dataSelecionada.formatted(.dateTime.month(.wide).locale(FormatadorDeMoeda.localidade)).capitalized)
                         .font(Tema.fonte(15, .medium))
@@ -501,15 +975,16 @@ private struct EditarLimitesView: View {
                     Spacer()
                     Button { deslocacaoDeMes += 1 } label: { Image(systemName: "chevron.right") }
                         .disabled(deslocacaoDeMes >= 6)
+                        .accessibilityLabel("Mês seguinte")
                 }
                 .buttonStyle(.borderless)
-                .foregroundStyle(Tema.douradoEscuro)
+                .textoDourado()
 
                 if let selecionadas = definicoesDoMes {
                     cartaoDoOrcamento(selecionadas)
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 0) {
                     ForEach(categorias) { categoria in
                         linhaDeCategoria(categoria)
                         if categoria.persistentModelID != categorias.last?.persistentModelID {
@@ -517,18 +992,13 @@ private struct EditarLimitesView: View {
                         }
                     }
                 }
+                .padding(.horizontal, 16)
+                .cartao()
 
-                Button {
+                BotaoLume(titulo: "Guardar limites", simbolo: "checkmark") {
                     try? contexto.save()
                     dismiss()
-                } label: {
-                    Text("Guardar limites")
-                        .font(Tema.fonte(15, .semibold))
-                        .foregroundStyle(Color(hex: "302B24"))
-                        .frame(maxWidth: .infinity, minHeight: 52)
-                        .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
                 }
-                .buttonStyle(EscalaAoTocar())
 
                 Text("Os movimentos existentes mantêm-se no teu histórico.")
                     .font(Tema.fonte(12))
@@ -540,6 +1010,7 @@ private struct EditarLimitesView: View {
             .padding(.bottom, 16)
         }
         .background(Tema.fundo)
+        .scrollDismissesKeyboard(.interactively)
         .presentationDragIndicator(.visible)
         .onAppear { garantirDefinicoes() }
         .onChange(of: deslocacaoDeMes) { garantirDefinicoes() }
@@ -548,27 +1019,20 @@ private struct EditarLimitesView: View {
     private func cartaoDoOrcamento(_ selecionadas: DefinicoesDoMes) -> some View {
         @Bindable var selecionadas = selecionadas
         return VStack(alignment: .leading, spacing: 8) {
-            Text("ORÇAMENTO MENSAL")
-                .font(Tema.fonte(11, .semibold))
-                .foregroundStyle(Tema.douradoEscuro)
-            TextField("0 €", value: $selecionadas.rendimentoEsperado, format: moeda)
-                .keyboardType(.decimalPad)
-                .font(Tema.fonte(31, .medium))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .foregroundStyle(Tema.tinta)
+            Legenda("Orçamento mensal")
+            TextField(value: $selecionadas.rendimentoEsperado, format: .euros, prompt: Text("0,00 €").foregroundStyle(Tema.placeholder)) {
+                Text("Orçamento mensal")
+            }
+            .keyboardType(.decimalPad)
+            .font(Tema.fonte(31, .medium))
+            .monospacedDigit()
+            .foregroundStyle(Tema.tinta)
             HStack {
                 Text("Poupança planeada")
                     .font(Tema.fonte(13))
                     .foregroundStyle(Tema.tintaSuave)
                 Spacer()
-                TextField("0 €", value: $selecionadas.poupancaPlaneada, format: moeda)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .font(Tema.fonte(13))
-                    .monospacedDigit()
-                    .foregroundStyle(Tema.tinta)
-                    .frame(width: 110)
+                CampoDeEuros(valor: $selecionadas.poupancaPlaneada, tamanho: 14)
             }
             Text("Distribui o valor pelas tuas categorias.")
                 .font(Tema.fonte(12))
@@ -576,32 +1040,25 @@ private struct EditarLimitesView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+        .cartaoCafe()
     }
 
     private func linhaDeCategoria(_ categoria: Categoria) -> some View {
         @Bindable var categoria = categoria
-        return HStack {
+        return HStack(spacing: 12) {
+            IconeDeCategoria(categoria: categoria, lado: 32)
             Text(categoria.nome)
                 .font(Tema.fonte(15))
                 .foregroundStyle(Tema.tinta)
             Spacer()
-            TextField(
-                "—",
-                value: Binding(
-                    get: { categoria.orcamentoMensal },
-                    set: { categoria.orcamentoMensal = ($0 ?? .zero) > .zero ? $0 : nil }
-                ),
-                format: moeda
+            CampoDeEuros(
+                valor: Binding(
+                    get: { categoria.orcamentoMensal ?? .zero },
+                    set: { categoria.orcamentoMensal = $0 > .zero ? $0 : nil }
+                )
             )
-            .keyboardType(.decimalPad)
-            .multilineTextAlignment(.trailing)
-            .font(Tema.fonte(15))
-            .monospacedDigit()
-            .foregroundStyle(Tema.tinta)
-            .frame(width: 110)
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 8)
     }
 }
 
@@ -611,6 +1068,8 @@ private struct FormularioDeObjetivo: View {
     @Environment(\.dismiss) private var dismiss
 
     let meta: Meta?
+    /// Para quem abriu o formulário (o detalhe) fechar também.
+    var aoEliminar: (() -> Void)?
 
     @State private var nome: String
     @State private var descricao: String
@@ -618,9 +1077,16 @@ private struct FormularioDeObjetivo: View {
     @State private var valorInicial: Decimal
     @State private var temPrazo: Bool
     @State private var prazo: Date
+    @State private var simbolo: String
 
-    init(meta: Meta?) {
+    private static let simbolos = [
+        "target", "airplane", "house.fill", "car.fill", "gift.fill",
+        "graduationcap.fill", "heart.fill", "banknote.fill",
+    ]
+
+    init(meta: Meta?, aoEliminar: (() -> Void)? = nil) {
         self.meta = meta
+        self.aoEliminar = aoEliminar
         self.nome = meta?.nome ?? ""
         self.descricao = meta?.descricao ?? ""
         self.valorAlvo = meta?.valorAlvo ?? .zero
@@ -628,59 +1094,78 @@ private struct FormularioDeObjetivo: View {
         self.temPrazo = meta?.dataLimite != nil
         self.prazo = meta?.dataLimite
             ?? Calendar.current.date(byAdding: .month, value: 3, to: .now) ?? .now
-    }
-
-    private var moeda: Decimal.FormatStyle.Currency {
-        .currency(code: "EUR").locale(FormatadorDeMoeda.localidade)
+        self.simbolo = meta?.simbolo ?? "target"
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 CabecalhoDeEcra(
-                    legenda: "DÁ UM DESTINO À TUA POUPANÇA",
-                    titulo: meta == nil ? "Um novo objetivo" : "Editar objetivo"
+                    legenda: "Objetivos",
+                    titulo: meta == nil ? "Um novo objetivo" : "Editar objetivo",
+                    aoVoltar: { dismiss() },
+                    simboloDeVoltar: "xmark"
                 )
 
                 if meta == nil {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 10) {
-                            Image(systemName: "target")
-                                .font(.system(size: 18))
-                                .foregroundStyle(Tema.douradoEscuro)
+                            IconeDourado(simbolo: simbolo, lado: 34)
                             Text("O próximo passo começa aqui.")
                                 .font(Tema.fonte(17, .semibold))
                                 .foregroundStyle(Tema.tinta)
                         }
-                        Text("Define um valor e uma data. O Lume ajuda-te a acompanhar o caminho.")
+                        Text("Define um valor e uma data. A Lume ajuda-te a acompanhar o caminho.")
                             .font(Tema.fonte(13))
                             .foregroundStyle(Tema.tintaSuave)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(20)
-                    .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
+                    .cartaoCafe()
                 }
 
                 // Os campos vivem num cartão branco, como no frame.
                 VStack(alignment: .leading, spacing: 16) {
-                    campo("NOME DO OBJETIVO") {
-                        TextField("Próxima viagem", text: $nome)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Legenda("Ícone")
+                        HStack(spacing: 6) {
+                            ForEach(Self.simbolos, id: \.self) { nome in
+                                Button { simbolo = nome } label: {
+                                    IconeDourado(simbolo: nome, lado: 26)
+                                        .padding(3)
+                                        .background(
+                                            Circle().fill(nome == simbolo ? Tema.areia : .clear)
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            Spacer(minLength: 0)
+                        }
                     }
-                    campo("PARA QUE SERVE? (OPCIONAL)") {
-                        TextField("Um plano para dezembro", text: $descricao)
+                    campo("Nome do objetivo") {
+                        TextField(text: $nome, prompt: Text("Ex.: próxima viagem").foregroundStyle(Tema.placeholder)) {
+                            Text("Nome do objetivo")
+                        }
                     }
-                    campo("QUANTO QUERES JUNTAR?") {
-                        TextField("1 500,00 €", value: $valorAlvo, format: moeda)
-                            .keyboardType(.decimalPad)
+                    campo("Para que serve? (opcional)") {
+                        TextField(text: $descricao, prompt: Text("Ex.: um plano para dezembro").foregroundStyle(Tema.placeholder)) {
+                            Text("Para que serve")
+                        }
                     }
-                    campo("ATÉ QUANDO?") {
+                    campo("Quanto queres juntar?") {
+                        TextField(value: $valorAlvo, format: .euros, prompt: Text("0,00 €").foregroundStyle(Tema.placeholder)) {
+                            Text("Valor do objetivo")
+                        }
+                        .keyboardType(.decimalPad)
+                    }
+                    campo("Até quando?") {
                         HStack {
-                            Toggle("", isOn: $temPrazo)
+                            Toggle("Com prazo", isOn: $temPrazo)
                                 .labelsHidden()
                                 .tint(Tema.dourado)
                                 .scaleEffect(0.8, anchor: .leading)
                             if temPrazo {
-                                DatePicker("", selection: $prazo, displayedComponents: .date)
+                                DatePicker("Prazo", selection: $prazo, displayedComponents: .date)
                                     .labelsHidden()
                                     .environment(\.locale, FormatadorDeMoeda.localidade)
                             } else {
@@ -690,28 +1175,22 @@ private struct FormularioDeObjetivo: View {
                             }
                         }
                     }
-                    campo("VALOR INICIAL") {
-                        TextField("0,00 €", value: $valorInicial, format: moeda)
-                            .keyboardType(.decimalPad)
+                    campo("Valor inicial") {
+                        TextField(value: $valorInicial, format: .euros, prompt: Text("0,00 €").foregroundStyle(Tema.placeholder)) {
+                            Text("Valor inicial")
+                        }
+                        .keyboardType(.decimalPad)
                     }
                 }
                 .padding(20)
-                .background(Tema.superficie, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Tema.Raio.cartao)
-                        .strokeBorder(Tema.separador, lineWidth: 1)
-                )
+                .cartao()
 
-                Button {
+                BotaoLume(
+                    titulo: meta == nil ? "Criar objetivo" : "Guardar alterações",
+                    simbolo: meta == nil ? "plus" : "checkmark"
+                ) {
                     guardar()
-                } label: {
-                    Text(meta == nil ? "Criar objetivo" : "Guardar alterações")
-                        .font(Tema.fonte(15, .semibold))
-                        .foregroundStyle(Color(hex: "302B24"))
-                        .frame(maxWidth: .infinity, minHeight: 52)
-                        .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
                 }
-                .buttonStyle(EscalaAoTocar())
                 .disabled(nome.trimmingCharacters(in: .whitespaces).isEmpty || valorAlvo <= .zero)
 
                 Text("Podes alterar o valor ou a data a qualquer momento.")
@@ -720,13 +1199,12 @@ private struct FormularioDeObjetivo: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 if let meta {
-                    Button("Eliminar objetivo", role: .destructive) {
+                    BotaoLume(titulo: "Eliminar objetivo", simbolo: "trash", estilo: .destrutivo) {
                         contexto.delete(meta)
                         try? contexto.save()
                         dismiss()
+                        aoEliminar?()
                     }
-                    .font(Tema.fonte(13))
-                    .frame(maxWidth: .infinity)
                 }
             }
             .padding(.horizontal, Tema.margemDoEcra)
@@ -734,16 +1212,15 @@ private struct FormularioDeObjetivo: View {
             .padding(.bottom, 16)
         }
         .background(Tema.fundo)
+        .scrollDismissesKeyboard(.interactively)
         .presentationDragIndicator(.visible)
     }
 
-    /// Campo do frame: legenda 10 SemiBold e caixa de 43 pt (raio 12)
+    /// Campo do frame: legenda pequena e caixa de 43 pt (raio 12)
     /// com o texto 16 Medium.
     private func campo(_ legenda: String, @ViewBuilder conteudo: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(legenda)
-                .font(Tema.fonte(10, .semibold))
-                .foregroundStyle(Tema.tintaSuave)
+            Legenda(legenda)
             HStack {
                 conteudo()
                     .font(Tema.fonte(16, .medium))
@@ -767,13 +1244,15 @@ private struct FormularioDeObjetivo: View {
             meta.valorAlvo = valorAlvo
             meta.valorPoupado = valorInicial
             meta.dataLimite = temPrazo ? prazo : nil
+            meta.simbolo = simbolo
         } else {
             contexto.insert(Meta(
                 nome: nome,
                 descricao: descricao.isEmpty ? nil : descricao,
                 valorAlvo: valorAlvo,
                 valorPoupado: valorInicial,
-                dataLimite: temPrazo ? prazo : nil
+                dataLimite: temPrazo ? prazo : nil,
+                simbolo: simbolo
             ))
         }
         try? contexto.save()
@@ -788,42 +1267,36 @@ private struct ReforcoDeObjetivo: View {
 
     let meta: Meta
 
-    @State private var valor = Decimal.zero
-
-    private var moeda: Decimal.FormatStyle.Currency {
-        .currency(code: "EUR").locale(FormatadorDeMoeda.localidade)
-    }
+    @State private var valor: Decimal?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("REFORÇAR OBJETIVO")
-                    .font(Tema.fonte(11))
-                    .foregroundStyle(Tema.douradoEscuro)
-                Text(meta.nome)
-                    .font(Tema.fonte(17, .semibold))
-                    .foregroundStyle(Tema.tinta)
+            HStack(spacing: 12) {
+                IconeDourado(simbolo: meta.simbolo, lado: 40)
+                VStack(alignment: .leading, spacing: 3) {
+                    Legenda("Reforçar objetivo")
+                    Text(meta.nome)
+                        .font(Tema.fonte(17, .semibold))
+                        .foregroundStyle(Tema.tinta)
+                }
             }
 
-            TextField("0,00 €", value: $valor, format: moeda)
-                .keyboardType(.decimalPad)
-                .font(Tema.fonte(34, .semibold))
-                .monospacedDigit()
-                .foregroundStyle(Tema.tinta)
+            TextField(value: $valor, format: .euros, prompt: Text("0,00 €").foregroundStyle(Tema.placeholder)) {
+                Text("Valor a adicionar")
+            }
+            .keyboardType(.decimalPad)
+            .font(Tema.fonte(34, .semibold))
+            .monospacedDigit()
+            .foregroundStyle(Tema.tinta)
 
-            Button {
+            BotaoLume(titulo: "Adicionar ao objetivo", simbolo: "plus") {
+                let valor = valor ?? .zero
                 meta.valorPoupado += valor
+                contexto.insert(ReforcoDaMeta(valor: valor, meta: meta))
                 try? contexto.save()
                 dismiss()
-            } label: {
-                Text("Adicionar ao objetivo")
-                    .font(Tema.fonte(15, .semibold))
-                    .foregroundStyle(Color(hex: "302B24"))
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                    .background(Tema.douradoBotao, in: RoundedRectangle(cornerRadius: Tema.Raio.campo))
             }
-            .buttonStyle(EscalaAoTocar())
-            .disabled(valor <= .zero)
+            .disabled((valor ?? .zero) <= .zero)
 
             Spacer(minLength: 0)
         }
@@ -831,7 +1304,7 @@ private struct ReforcoDeObjetivo: View {
         .padding(.top, 24)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Tema.fundo)
-        .presentationDetents([.height(280)])
+        .presentationDetents([.height(300)])
         .presentationDragIndicator(.visible)
     }
 }

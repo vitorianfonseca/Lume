@@ -1,0 +1,6 @@
+{
+  "images" : [
+    { "filename" : "icone-contas.png", "idiom" : "universal" }
+  ],
+  "info" : { "author" : "xcode", "version" : 1 }
+}

@@ -1,37 +1,27 @@
 import AppIntents
-import CoreText
 import SwiftUI
 import WidgetKit
 
 // MARK: - Sistema visual (espelho do Tema.swift da app)
 
+/// As cores vivem em `CoresDoWidget` (IlustracoesDoWidget.swift): o
+/// "Ouro no branco" da app, com modo escuro em preto fosco.
 private enum Paleta {
-    static let fundo = Color(red: 1, green: 1, blue: 1)
-    static let tinta = Color(red: 0x30 / 255, green: 0x2B / 255, blue: 0x24 / 255)
-    static let suave = Color(red: 0x7B / 255, green: 0x73 / 255, blue: 0x67 / 255)
-    static let dourado = Color(red: 0x8E / 255, green: 0x64 / 255, blue: 0x1F / 255)
-    static let douradoClaro = Color(red: 0xE8 / 255, green: 0xCD / 255, blue: 0x91 / 255)
-    static let warm = Color(red: 0xF0 / 255, green: 0xEB / 255, blue: 0xE1 / 255)
-    static let areia = Color(red: 0xF7 / 255, green: 0xEE / 255, blue: 0xDB / 255)
-    static let positivo = Color(red: 0x45 / 255, green: 0x6B / 255, blue: 0x56 / 255)
-    static let separador = Color(red: 0xE7 / 255, green: 0xE0 / 255, blue: 0xD5 / 255)
+    static let fundo = CoresDoWidget.fundo
+    static let tinta = CoresDoWidget.tinta
+    static let suave = CoresDoWidget.suave
+    static let dourado = CoresDoWidget.dourado
+    static let douradoClaro = CoresDoWidget.douradoClaro
+    static let warm = CoresDoWidget.trilho
+    static let areia = CoresDoWidget.cartao
+    static let positivo = CoresDoWidget.positivo
+    static let separador = CoresDoWidget.separador
 }
 
-/// O Instrument Sans vive no contentor partilhado; a app põe-o lá e o widget
-/// regista-o no próprio processo. Se faltar, o `.custom` cai na fonte do
-/// sistema sem quebrar nada.
+/// A fonte do sistema (SF Pro) — o mesmo espelho de `Tema.fonte` da app.
 private enum Fonte {
-    private static let registada: Bool = {
-        guard let url = FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: "group.com.aurea.lume")?
-            .appending(path: "InstrumentSans.ttf") else { return false }
-        var erro: Unmanaged<CFError>?
-        return CTFontManagerRegisterFontsForURL(url as CFURL, .process, &erro)
-    }()
-
     static func lume(_ tamanho: CGFloat, _ peso: Font.Weight = .regular) -> Font {
-        _ = registada
-        return .custom("Instrument Sans", size: tamanho).weight(peso)
+        .system(size: tamanho, weight: peso)
     }
 }
 
@@ -69,6 +59,8 @@ private struct Resumo: Codable {
     var limites: [Limite]
     var movimentos: [Movimento]
     var atualizadoEm: Date
+    /// Perfil → Privacidade → "Esconder valores".
+    var valoresEscondidos: Bool = false
 
     var fracaoUsada: Double {
         guard rendimento > .zero else { return 0 }
@@ -80,7 +72,7 @@ private struct Resumo: Codable {
     }
 
     static func doGrupo() -> Resumo? {
-        guard let defaults = UserDefaults(suiteName: "group.com.aurea.lume"),
+        guard let defaults = UserDefaults(suiteName: "group.com.vitoriafonseca.lume"),
               let dados = defaults.data(forKey: "resumoDoDia") else { return nil }
         return try? JSONDecoder().decode(Resumo.self, from: dados)
     }
@@ -119,6 +111,17 @@ private func inteiro(_ valor: Decimal) -> String {
     "\((valor as NSDecimalNumber).intValue)"
 }
 
+/// Com "Esconder valores" ativo, mostra pontos em vez do número — a forma
+/// fica, o valor não. Usa-se em todo o sítio onde apareceria um euros(_:)
+/// ou inteiro(_:).
+private func euros(_ valor: Decimal, escondido: Bool) -> String {
+    escondido ? "•••• €" : euros(valor)
+}
+
+private func inteiro(_ valor: Decimal, escondido: Bool) -> String {
+    escondido ? "••" : inteiro(valor)
+}
+
 /// O pt-PT só agrupa a partir de 10 000 — o design escreve "1 092,90 €".
 private func agrupado(_ original: String) -> String {
     guard let fim = original.firstIndex(of: ",") else { return original }
@@ -149,7 +152,7 @@ private enum Ligacao {
 
 // MARK: - Peças
 
-/// A barra do orçamento: goldLight sobre warm, como na app.
+/// A barra do orçamento: fina, cantos pouco arredondados, castanho liso.
 private struct Barra: View {
     let fracao: Double
     var altura: CGFloat = 5
@@ -157,10 +160,10 @@ private struct Barra: View {
     var body: some View {
         GeometryReader { geometria in
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 2).fill(Paleta.warm)
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Paleta.douradoClaro)
-                    .frame(width: geometria.size.width * max(0.02, fracao))
+                RoundedRectangle(cornerRadius: 1.5).fill(Paleta.warm)
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(CoresDoWidget.ouroDaBarra)
+                    .frame(width: geometria.size.width * min(max(fracao, 0), 1))
             }
         }
         .frame(height: altura)
@@ -210,7 +213,7 @@ private struct Ritmo: View {
                         }
                     }
                 }
-                .stroke(Paleta.douradoClaro, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                .stroke(CoresDoWidget.ouroDaBarra, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
             }
         }
     }
@@ -223,38 +226,44 @@ private struct AcoesDeRegisto: View {
     var body: some View {
         HStack(spacing: 6) {
             acao("Escrever", simbolo: nil, ligacao: Ligacao.texto)
-            acao("Falar", simbolo: "mic", ligacao: Ligacao.voz)
-            acao("Talão", simbolo: "camera", ligacao: Ligacao.talao)
+            acao("Falar", simbolo: "mic.fill", ligacao: Ligacao.voz)
+            acao("Talão", simbolo: "camera.fill", ligacao: Ligacao.talao)
         }
     }
 
+    /// As três no mesmo cinza-pedra — o verde e o pêssego ficam só para o
+    /// estado do ritmo, para não repetir a mesma cor com dois significados
+    /// (ela achou o widget com muitos pastéis diferentes, "enjoativo").
     private func acao(_ titulo: String, simbolo: String?, ligacao: URL) -> some View {
         Link(destination: ligacao) {
             HStack(spacing: 5) {
                 if let simbolo {
                     Image(systemName: simbolo)
                         .font(.system(size: compacto ? 10 : 11))
+                        .foregroundStyle(CoresDoWidget.dourado)
                 } else {
                     Text("T")
                         .font(.system(size: compacto ? 11 : 12, weight: .medium, design: .serif))
+                        .foregroundStyle(CoresDoWidget.dourado)
                 }
                 if !compacto {
                     Text(titulo)
                         .font(Fonte.lume(11, .medium))
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
+                        .foregroundStyle(Paleta.tinta)
                 }
             }
-            .foregroundStyle(Paleta.dourado)
             .frame(maxWidth: .infinity)
-            .frame(height: compacto ? 26 : 30)
-            .background(Paleta.areia, in: RoundedRectangle(cornerRadius: 10))
+            .frame(height: compacto ? 28 : 32)
+            .background(CoresDoWidget.cartao, in: RoundedRectangle(cornerRadius: 11))
         }
     }
 }
 
 private struct LinhaDeLimite: View {
     let limite: Limite
+    var escondido = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -264,12 +273,12 @@ private struct LinhaDeLimite: View {
                     .foregroundStyle(Paleta.tinta)
                     .lineLimit(1)
                 Spacer(minLength: 4)
-                Text("\(inteiro(limite.gasto)) / \(inteiro(limite.orcamento)) €")
+                Text("\(inteiro(limite.gasto, escondido: escondido)) / \(inteiro(limite.orcamento, escondido: escondido)) €")
                     .font(Fonte.lume(10))
                     .monospacedDigit()
                     .foregroundStyle(Paleta.suave)
             }
-            Barra(fracao: limite.fracao, altura: 4)
+            Barra(fracao: escondido ? 0 : limite.fracao, altura: 4)
         }
     }
 }
@@ -312,7 +321,11 @@ private struct VistaDoMes: View {
                 case .systemMedium: medio(resumo)
                 case .accessoryCircular: circular(resumo)
                 case .accessoryRectangular: retangular(resumo)
-                case .accessoryInline: Text("\(euros(resumo.disponivelDoMes)) · \(euros(resumo.porDia))/dia")
+                case .accessoryInline: Text(
+                    resumo.valoresEscondidos
+                        ? "Lume · valores escondidos"
+                        : "\(euros(resumo.porDia))/dia · \(euros(resumo.disponivelDoMes))"
+                )
                 default: pequeno(resumo)
                 }
             } else {
@@ -322,116 +335,138 @@ private struct VistaDoMes: View {
         .containerBackground(Paleta.fundo, for: .widget)
     }
 
+    /// O cartão pastel do estado do mês: verde quando o ritmo está bom,
+    /// pêssego quando está acima.
+    private func corDoEstado(_ resumo: Resumo) -> Color {
+        resumo.dentroDoLimite ? CoresDoWidget.menta : CoresDoWidget.pessego
+    }
+
+    private func ilustracao(_ resumo: Resumo) -> IlustracaoDoWidget {
+        IlustracaoDoWidget(tipo: resumo.dentroDoLimite ? .frasco : .graficos)
+    }
+
+    private func diasEmFalta(_ resumo: Resumo) -> String {
+        resumo.diasRestantes == 1 ? "falta 1 dia" : "faltam \(resumo.diasRestantes) dias"
+    }
+
+    private func estado(_ resumo: Resumo) -> some View {
+        Text(resumo.dentroDoLimite ? "Bom ritmo" : "Acima do ritmo")
+            .font(Fonte.lume(10, .semibold))
+            .foregroundStyle(resumo.dentroDoLimite ? AnyShapeStyle(Paleta.positivo) : AnyShapeStyle(CoresDoWidget.castanho))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+    }
+
     // MARK: Ecrã inicial
 
     private func pequeno(_ resumo: Resumo) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("AINDA DISPONÍVEIS")
-                .font(Fonte.lume(9, .semibold))
-                .foregroundStyle(Paleta.dourado)
-            Text(euros(resumo.disponivelDoMes))
-                .font(Fonte.lume(24, .medium))
+            HStack(alignment: .top, spacing: 4) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("POR DIA")
+                        .font(Fonte.lume(9, .semibold))
+                        .foregroundStyle(CoresDoWidget.castanho)
+                    estado(resumo)
+                }
+                Spacer(minLength: 0)
+                ilustracao(resumo)
+                    .frame(width: 44, height: 44)
+                    .background(corDoEstado(resumo), in: Circle())
+            }
+
+            Spacer(minLength: 2)
+
+            Text(euros(resumo.porDia, escondido: resumo.valoresEscondidos))
+                .font(Fonte.lume(26, .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Paleta.tinta)
-                .minimumScaleFactor(0.65)
+                .minimumScaleFactor(0.6)
                 .lineLimit(1)
-                .padding(.top, 2)
+            Text("podes gastar · \(diasEmFalta(resumo))")
+                .font(Fonte.lume(9))
+                .foregroundStyle(Paleta.suave)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
 
             Spacer(minLength: 6)
 
-            Barra(fracao: resumo.fracaoUsada)
+            Barra(fracao: resumo.valoresEscondidos ? 0 : resumo.fracaoUsada)
             HStack(spacing: 4) {
-                Text("\(resumo.percentagemUsada)% usado")
+                Text("Gasto")
                     .font(Fonte.lume(9))
                     .foregroundStyle(Paleta.suave)
                 Spacer(minLength: 0)
-                Text(resumo.dentroDoLimite ? "no ritmo" : "acima")
+                Text(euros(resumo.gastoDoMes, escondido: resumo.valoresEscondidos))
                     .font(Fonte.lume(9, .medium))
-                    .foregroundStyle(resumo.dentroDoLimite ? Paleta.positivo : Paleta.dourado)
+                    .monospacedDigit()
+                    .foregroundStyle(Paleta.tinta)
             }
             .padding(.top, 5)
-
-            Spacer(minLength: 6)
-
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Por dia")
-                        .font(Fonte.lume(9))
-                        .foregroundStyle(Paleta.suave)
-                    Text(euros(resumo.porDia))
-                        .font(Fonte.lume(14, .medium))
-                        .monospacedDigit()
-                        .foregroundStyle(Paleta.tinta)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-                Spacer(minLength: 0)
-                VStack(alignment: .trailing, spacing: 1) {
-                    Text("Hoje")
-                        .font(Fonte.lume(9))
-                        .foregroundStyle(Paleta.suave)
-                    Text(euros(resumo.gastoDeHoje))
-                        .font(Fonte.lume(14, .medium))
-                        .monospacedDigit()
-                        .foregroundStyle(Paleta.tinta)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .widgetURL(Ligacao.resumo)
+        .overlay(alignment: .bottomTrailing) {
+            // Um toque para registar, sem ter de abrir primeiro o Resumo.
+            Link(destination: Ligacao.texto) {
+                Image(systemName: "plus")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(CoresDoWidget.dourado)
+                    .frame(width: 26, height: 26)
+                    .background(CoresDoWidget.cartao, in: Circle())
+            }
+            .accessibilityLabel("Registar")
+        }
     }
 
     private func medio(_ resumo: Resumo) -> some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 0) {
-                Text("AINDA DISPONÍVEIS")
+                Text("POR DIA")
                     .font(Fonte.lume(9, .semibold))
-                    .foregroundStyle(Paleta.dourado)
-                Text(euros(resumo.disponivelDoMes))
-                    .font(Fonte.lume(26, .medium))
+                    .foregroundStyle(CoresDoWidget.castanho)
+                Text(euros(resumo.porDia, escondido: resumo.valoresEscondidos))
+                    .font(Fonte.lume(28, .semibold))
                     .monospacedDigit()
                     .foregroundStyle(Paleta.tinta)
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
-                Text("de \(euros(resumo.rendimento)) · \(resumo.diasRestantes) \(resumo.diasRestantes == 1 ? "dia" : "dias")")
+                Text(
+                    resumo.valoresEscondidos
+                        ? "Valores escondidos"
+                        : "Gasto \(euros(resumo.gastoDoMes)) de \(euros(resumo.rendimento))"
+                )
                     .font(Fonte.lume(9))
                     .foregroundStyle(Paleta.suave)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .padding(.top, 1)
 
                 Spacer(minLength: 6)
-                Barra(fracao: resumo.fracaoUsada)
+                Barra(fracao: resumo.valoresEscondidos ? 0 : resumo.fracaoUsada)
                 Spacer(minLength: 8)
 
                 // À largura do médio, os rótulos não cabem: ficam os ícones.
                 AcoesDeRegisto(compacto: true)
             }
 
+            // O estado do mês num cartão pastel com a ilustração.
             VStack(alignment: .leading, spacing: 4) {
-                Text("POR DIA")
-                    .font(Fonte.lume(9, .semibold))
+                ilustracao(resumo)
+                    .frame(width: 50, height: 50)
+                    .frame(maxWidth: .infinity)
+                estado(resumo)
+                Text(diasEmFalta(resumo))
+                    .font(Fonte.lume(9))
                     .foregroundStyle(Paleta.suave)
-                Text(euros(resumo.porDia))
-                    .font(Fonte.lume(18, .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(Paleta.tinta)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-
-                Ritmo(pontos: resumo.acumulado, orcamento: resumo.rendimento)
-                    .frame(height: 30)
-                    .padding(.top, 2)
-
-                Text(resumo.dentroDoLimite ? "Dentro do limite" : "Acima do ritmo")
-                    .font(Fonte.lume(10, .medium))
-                    .foregroundStyle(resumo.dentroDoLimite ? Paleta.positivo : Paleta.dourado)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-
-                Spacer(minLength: 0)
+                if !resumo.valoresEscondidos {
+                    Ritmo(pontos: resumo.acumulado, orcamento: resumo.rendimento)
+                        .frame(height: 22)
+                }
             }
-            .frame(width: 118)
+            .padding(10)
+            .frame(width: 112)
+            .frame(maxHeight: .infinity)
+            .background(corDoEstado(resumo), in: RoundedRectangle(cornerRadius: 16))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -439,59 +474,73 @@ private struct VistaDoMes: View {
     private func grande(_ resumo: Resumo) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Link(destination: Ligacao.resumo) {
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack {
-                        Text("AINDA DISPONÍVEIS")
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("POR DIA")
                             .font(Fonte.lume(9, .semibold))
-                            .foregroundStyle(Paleta.dourado)
-                        Spacer()
-                        Text(resumo.dentroDoLimite ? "Dentro do limite" : "Acima do ritmo")
-                            .font(Fonte.lume(10, .medium))
-                            .foregroundStyle(resumo.dentroDoLimite ? Paleta.positivo : Paleta.dourado)
-                    }
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(euros(resumo.disponivelDoMes))
-                            .font(Fonte.lume(32, .medium))
+                            .foregroundStyle(CoresDoWidget.castanho)
+                        Text(euros(resumo.porDia, escondido: resumo.valoresEscondidos))
+                            .font(Fonte.lume(32, .semibold))
                             .monospacedDigit()
                             .foregroundStyle(Paleta.tinta)
                             .minimumScaleFactor(0.7)
                             .lineLimit(1)
-                        Spacer(minLength: 8)
-                        Ritmo(pontos: resumo.acumulado, orcamento: resumo.rendimento)
-                            .frame(width: 110, height: 28)
+                        Text("podes gastar · \(diasEmFalta(resumo))")
+                            .font(Fonte.lume(10))
+                            .foregroundStyle(Paleta.suave)
+                        estado(resumo)
+                            .padding(.top, 3)
                     }
-                    .padding(.top, 2)
-                    Text("\(euros(resumo.gastoDoMes)) gastos de \(euros(resumo.rendimento)) · por dia \(euros(resumo.porDia))")
-                        .font(Fonte.lume(10))
-                        .foregroundStyle(Paleta.suave)
-                        .padding(.top, 2)
-                    Barra(fracao: resumo.fracaoUsada)
-                        .padding(.top, 7)
+                    Spacer(minLength: 4)
+                    ilustracao(resumo)
+                        .frame(width: 66, height: 66)
                 }
+                .padding(12)
+                .background(corDoEstado(resumo), in: RoundedRectangle(cornerRadius: 18))
             }
 
+            HStack {
+                Text(
+                    resumo.valoresEscondidos
+                        ? "Valores escondidos"
+                        : "Gasto \(euros(resumo.gastoDoMes)) de \(euros(resumo.rendimento))"
+                )
+                    .font(Fonte.lume(10))
+                    .foregroundStyle(Paleta.suave)
+                Spacer()
+                if !resumo.valoresEscondidos {
+                    Ritmo(pontos: resumo.acumulado, orcamento: resumo.rendimento)
+                        .frame(width: 80, height: 18)
+                }
+            }
+            .padding(.top, 10)
+            Barra(fracao: resumo.valoresEscondidos ? 0 : resumo.fracaoUsada)
+                .padding(.top, 5)
+
             if !resumo.limites.isEmpty {
-                Divider().overlay(Paleta.separador).padding(.vertical, 10)
                 Link(destination: Ligacao.planear) {
                     VStack(alignment: .leading, spacing: 7) {
-                        ForEach(resumo.limites.prefix(3), id: \.nome) { limite in
-                            LinhaDeLimite(limite: limite)
+                        ForEach(resumo.limites.prefix(2), id: \.nome) { limite in
+                            LinhaDeLimite(limite: limite, escondido: resumo.valoresEscondidos)
                         }
                     }
                 }
+                .padding(.top, 12)
             }
 
             if !resumo.movimentos.isEmpty {
-                Divider().overlay(Paleta.separador).padding(.vertical, 10)
+                Divider().overlay(Paleta.separador).padding(.vertical, 9)
                 Link(destination: Ligacao.movimentos) {
                     VStack(spacing: 6) {
-                        ForEach(resumo.movimentos.prefix(3), id: \.titulo) { movimento in
+                        ForEach(Array(resumo.movimentos.prefix(2).enumerated()), id: \.offset) { _, movimento in
                             HStack(spacing: 8) {
                                 Text(iniciais(de: movimento.titulo))
                                     .font(Fonte.lume(9, .semibold))
-                                    .foregroundStyle(Paleta.dourado)
+                                    .foregroundStyle(Paleta.tinta)
                                     .frame(width: 26, height: 26)
-                                    .background(Paleta.warm, in: RoundedRectangle(cornerRadius: 9))
+                                    // Um só neutro — o verde e o pêssego ficam só
+                                    // para o estado do ritmo, como no resto do widget.
+                                    .background(CoresDoWidget.trilho, in: RoundedRectangle(cornerRadius: 9))
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(movimento.titulo)
                                         .font(Fonte.lume(11, .medium))
@@ -503,7 +552,7 @@ private struct VistaDoMes: View {
                                         .lineLimit(1)
                                 }
                                 Spacer(minLength: 4)
-                                Text((movimento.receita ? "+" : "−") + euros(movimento.valor))
+                                Text((movimento.receita ? "+" : "−") + euros(movimento.valor, escondido: resumo.valoresEscondidos))
                                     .font(Fonte.lume(11, .medium))
                                     .monospacedDigit()
                                     .foregroundStyle(movimento.receita ? Paleta.positivo : Paleta.tinta)
@@ -522,10 +571,11 @@ private struct VistaDoMes: View {
     // MARK: Ecrã bloqueado
 
     private func circular(_ resumo: Resumo) -> some View {
-        Gauge(value: resumo.fracaoUsada) {
+        // Escondido, o aro fica vazio em vez de denunciar a percentagem.
+        Gauge(value: resumo.valoresEscondidos ? 0 : resumo.fracaoUsada) {
             Image(systemName: "eurosign")
         } currentValueLabel: {
-            Text(inteiro(resumo.disponivelDoMes))
+            Text(inteiro(resumo.disponivelDoMes, escondido: resumo.valoresEscondidos))
                 .minimumScaleFactor(0.6)
         }
         .gaugeStyle(.accessoryCircular)
@@ -534,12 +584,15 @@ private struct VistaDoMes: View {
 
     private func retangular(_ resumo: Resumo) -> some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text("AINDA DISPONÍVEIS")
+            Text("POR DIA")
                 .font(.system(size: 10, weight: .semibold))
-            Text(euros(resumo.disponivelDoMes))
+            Text(euros(resumo.porDia, escondido: resumo.valoresEscondidos))
                 .font(.system(size: 18, weight: .medium))
                 .monospacedDigit()
-            Text("Por dia \(euros(resumo.porDia)) · \(resumo.diasRestantes) \(resumo.diasRestantes == 1 ? "dia" : "dias")")
+            Text(
+                "Disponível \(euros(resumo.disponivelDoMes, escondido: resumo.valoresEscondidos)) · "
+                    + "\(resumo.diasRestantes) \(resumo.diasRestantes == 1 ? "dia" : "dias")"
+            )
                 .font(.system(size: 11))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -548,9 +601,16 @@ private struct VistaDoMes: View {
 
     private var vazio: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text("LUME")
-                .font(Fonte.lume(9, .semibold))
-                .foregroundStyle(Paleta.dourado)
+            HStack(alignment: .top) {
+                Text("LUME")
+                    .font(Fonte.lume(9, .semibold))
+                    .foregroundStyle(CoresDoWidget.castanho)
+                Spacer()
+                IlustracaoDoWidget(tipo: .carteira)
+                    .frame(width: 48, height: 48)
+                    .background(CoresDoWidget.menta, in: Circle())
+            }
+            Spacer(minLength: 0)
             Text("Define o orçamento do mês para ver os teus números aqui.")
                 .font(Fonte.lume(11))
                 .foregroundStyle(Paleta.suave)
@@ -591,11 +651,17 @@ private struct VistaDosLimites: View {
         Group {
             if let resumo = entrada.resumo, !resumo.limites.isEmpty {
                 VStack(alignment: .leading, spacing: familia == .systemSmall ? 8 : 10) {
-                    Text("OS TEUS LIMITES")
-                        .font(Fonte.lume(9, .semibold))
-                        .foregroundStyle(Paleta.dourado)
+                    HStack(alignment: .top) {
+                        Text("OS TEUS LIMITES")
+                            .font(Fonte.lume(9, .semibold))
+                            .foregroundStyle(CoresDoWidget.castanho)
+                        Spacer()
+                        IlustracaoDoWidget(tipo: .graficos)
+                            .frame(width: 30, height: 30)
+                            .background(CoresDoWidget.ceu, in: Circle())
+                    }
                     ForEach(resumo.limites.prefix(familia == .systemSmall ? 2 : 3), id: \.nome) { limite in
-                        LinhaDeLimite(limite: limite)
+                        LinhaDeLimite(limite: limite, escondido: resumo.valoresEscondidos)
                     }
                     Spacer(minLength: 0)
                 }
@@ -605,7 +671,7 @@ private struct VistaDosLimites: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("OS TEUS LIMITES")
                         .font(Fonte.lume(9, .semibold))
-                        .foregroundStyle(Paleta.dourado)
+                        .foregroundStyle(CoresDoWidget.castanho)
                     Text("Define limites por categoria no Planear.")
                         .font(Fonte.lume(11))
                         .foregroundStyle(Paleta.suave)
@@ -632,6 +698,20 @@ struct WidgetDosLimites: Widget {
 }
 
 // MARK: - Controlo (Centro de Controlo, Botão de Ação e ecrã bloqueado)
+
+@available(iOS 18.0, *)
+@available(iOS 18.0, *)
+struct ControloDeRegistoGeral: ControlWidget {
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(kind: "com.aurea.lume.controlo.registarGeral") {
+            ControlWidgetButton(action: OpenURLIntent(Ligacao.texto)) {
+                Label("Registar", systemImage: "plus")
+            }
+        }
+        .displayName("Registar")
+        .description("Abre a Lume para registares uma despesa ou receita.")
+    }
+}
 
 @available(iOS 18.0, *)
 struct ControloDeRegisto: ControlWidget {

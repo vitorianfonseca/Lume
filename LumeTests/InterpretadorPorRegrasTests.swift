@@ -99,4 +99,21 @@ struct InterpretadorPorRegrasTests {
         let impossivel = ResolutorDeDatas.resolver("31/2", emRelacaoA: hoje, calendario: calendario)
         #expect(calendario.isDate(impossivel, inSameDayAs: hoje))
     }
+
+    @Test("Talão: a loja chega para sugerir a categoria")
+    func sugestaoPelaLoja() {
+        #expect(InterpretadorPorRegras.sugerirCategoria(para: "PINGO DOCE", entre: categorias) == "Supermercado")
+        #expect(InterpretadorPorRegras.sugerirCategoria(para: "Galp Benfica", entre: categorias) == "Transportes")
+    }
+
+    @Test("Roupa só é sugerida quando a categoria existe")
+    func sugestaoDeRoupa() {
+        #expect(InterpretadorPorRegras.sugerirCategoria(para: "zara casaco 49", entre: categorias + ["Roupa"]) == "Roupa")
+        #expect(InterpretadorPorRegras.sugerirCategoria(para: "zara casaco 49", entre: categorias) == nil)
+    }
+
+    @Test("Sem pistas, não inventa categoria")
+    func semSugestao() {
+        #expect(InterpretadorPorRegras.sugerirCategoria(para: "coisa 12", entre: categorias) == nil)
+    }
 }

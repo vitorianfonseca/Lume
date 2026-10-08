@@ -145,4 +145,28 @@ struct CalculadoraDoDiaTests {
         #expect(dia.disponivelDoMes == eur("700"))
         #expect(dia.diasRestantes == 16)
     }
+
+    @Test("A conta visível bate certo: rendimento = gasto + reservado + disponível")
+    func contaVisivelBateCerto() throws {
+        let resultado = CalculadoraDoDia.calcular(.init(
+            hoje: data(2026, 4, 15),
+            calendario: calendario,
+            rendimentoEsperado: eur("1450"),
+            poupancaPlaneada: eur("100"),
+            recorrentesAtivas: [eur("650"), eur("40")],
+            despesasDoMes: [
+                .init(valor: eur("650"), data: data(2026, 4, 1), ehPagamentoDeRecorrente: true),
+                .init(valor: eur("100"), data: data(2026, 4, 5)),
+                .init(valor: eur("12.50"), data: data(2026, 4, 15)),
+            ]
+        ))
+
+        let dia = try diaCalculado(resultado)
+        #expect(dia.gastoDoMes == eur("762.50"))
+        // Poupança 100 + a subscrição de 40 que ainda não foi paga.
+        #expect(dia.reservado == eur("140"))
+        #expect(dia.disponivelAgora == eur("547.50"))
+        #expect(dia.gastoDoMes + dia.reservado + dia.disponivelAgora == eur("1450"))
+        #expect(dia.porDia == eur("34.22"))
+    }
 }

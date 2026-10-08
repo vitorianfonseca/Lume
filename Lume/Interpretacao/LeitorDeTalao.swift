@@ -12,6 +12,16 @@ nonisolated enum LeitorDeTalao {
     struct Leitura: Equatable {
         var loja: String?
         var total: Decimal
+        /// A data impressa no talão, se for legível.
+        var data: Date?
+        /// As linhas de produto com preço na mesma linha, pela ordem do talão.
+        var itens: [Item] = []
+    }
+
+    struct Item: Equatable, Identifiable {
+        let id: Int
+        let nome: String
+        let valor: Decimal
     }
 
     static func ler(_ dados: Data) async throws -> Leitura {
@@ -30,7 +40,63 @@ nonisolated enum LeitorDeTalao {
         guard let total = extrairTotal(de: linhas) else {
             throw ErroDeLeituraDeTalao.semValor
         }
-        return Leitura(loja: extrairLoja(de: linhas), total: total)
+        return Leitura(
+            loja: extrairLoja(de: linhas),
+            total: total,
+            data: extrairData(de: linhas),
+            itens: extrairItens(de: linhas)
+        )
+    }
+
+    /// Linhas que têm valor mas não são produtos.
+    private static let palavrasDeResumo = [
+        "total", "iva", "troco", "multibanco", "mb ", "visa", "mastercard", "pagamento",
+        "numerário", "numerario", "dinheiro", "desconto", "poupança", "saldo", "nif", "contribuinte",
+        "cartão", "cartao", "valor", "entregue", "taxa", "base",
+    ]
+
+    /// "Pão alentejano 1,89" → produto com preço. Só se o nome vier na
+    /// mesma linha; linhas de totais, impostos e pagamento ficam de fora.
+    private static func extrairItens(de linhas: [String]) -> [Item] {
+        var itens: [Item] = []
+        for linha in linhas {
+            let minuscula = linha.lowercased()
+            guard !palavrasDeResumo.contains(where: minuscula.contains),
+                  let preco = valor(em: linha), preco > 0,
+                  let inicioDoPreco = linha.firstMatch(of: /\d{1,3}(?:[ .]\d{3})*[.,]\d{2}/)?.range.lowerBound
+            else { continue }
+
+            // O nome é o que vem antes do preço, sem quantidades soltas nem símbolos.
+            let nome = linha[..<inicioDoPreco]
+                .trimmingCharacters(in: .whitespaces.union(.punctuationCharacters).union(CharacterSet(charactersIn: "€x*")))
+            guard nome.count >= 2, nome.rangeOfCharacter(from: .letters) != nil else { continue }
+
+            itens.append(Item(id: itens.count, nome: nome, valor: preco))
+            if itens.count == 12 { break }
+        }
+        return itens
+    }
+
+    /// "24/09/2026", "24-09-26" ou "2026-09-24".
+    private static func extrairData(de linhas: [String]) -> Date? {
+        var calendario = Calendar(identifier: .gregorian)
+        calendario.timeZone = .current
+        for linha in linhas {
+            if let m = linha.firstMatch(of: /(\d{4})-(\d{2})-(\d{2})/),
+               let data = calendario.date(from: DateComponents(year: Int(m.1), month: Int(m.2), day: Int(m.3))) {
+                return data
+            }
+            if let m = linha.firstMatch(of: /(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/),
+               let dia = Int(m.1), let mes = Int(m.2), var ano = Int(m.3),
+               (1...31).contains(dia), (1...12).contains(mes) {
+                if ano < 100 { ano += 2000 }
+                if let data = calendario.date(from: DateComponents(year: ano, month: mes, day: dia)),
+                   calendario.component(.day, from: data) == dia {
+                    return data
+                }
+            }
+        }
+        return nil
     }
 
     /// A linha "total" manda; sem ela, vale o maior valor do talão.

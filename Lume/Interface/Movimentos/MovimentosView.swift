@@ -21,7 +21,13 @@ struct MovimentosView: View {
     @State private var categoriaFiltrada: String?
     @State private var transacaoAberta: Transacao?
     @State private var transacaoEmEdicao: Transacao?
-    @Namespace private var espacoDoSeletor
+    /// O movimento à espera de confirmação para ser eliminado.
+    @State private var transacaoAEliminar: Transacao?
+
+    /// Sem filtro nem pesquisa: só então o resumo do mês faz sentido.
+    private var semFiltro: Bool {
+        filtro == .todos && categoriaFiltrada == nil && pesquisa.isEmpty
+    }
 
     private var filtradas: [Transacao] {
         transacoes.filter { transacao in
@@ -60,6 +66,12 @@ struct MovimentosView: View {
         Date.now.formatted(.dateTime.month(.wide).locale(FormatadorDeMoeda.localidade)).capitalized
     }
 
+    /// A legenda do cabeçalho é contexto, não slogan: "OUTUBRO · 23 MOVIMENTOS".
+    private var legendaDoMes: String {
+        let total = doMes.count
+        return "\(nomeDoMes) · \(total) \(total == 1 ? "movimento" : "movimentos")"
+    }
+
     /// Já vêm ordenadas por data; o agrupamento preserva a ordem dentro de cada dia.
     private var porDia: [(dia: Date, transacoes: [Transacao])] {
         let calendario = Calendar.current
@@ -73,11 +85,16 @@ struct MovimentosView: View {
         // hairlines, cabeçalhos de dia discretos, swipe para apagar.
         List {
             Section {
-                CabecalhoDeEcra(legenda: "CADA DETALHE NO SEU LUGAR", titulo: "Movimentos")
+                CabecalhoDeEcra(legenda: legendaDoMes, titulo: "Movimentos")
                     .padding(.top, 4)
                 campoDePesquisa
                 filtros
-                if !doMes.isEmpty {
+                if let categoriaFiltrada {
+                    etiquetaDaCategoria(categoriaFiltrada)
+                }
+                // O resumo só quando se vê a lista toda; com filtro ou
+                // pesquisa os números do mês não correspondem às linhas.
+                if !doMes.isEmpty, semFiltro {
                     resumoDoMes
                 }
             }
@@ -87,16 +104,13 @@ struct MovimentosView: View {
 
             if filtradas.isEmpty {
                 Section {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(pesquisa.isEmpty ? "Sem movimentos" : "Nada encontrado")
-                            .font(Tema.fonte(17, .semibold))
-                            .foregroundStyle(Tema.tinta)
-                        Text(pesquisa.isEmpty
+                    EstadoVazio(
+                        ilustracao: pesquisa.isEmpty ? .carteira : .lupa,
+                        titulo: pesquisa.isEmpty ? "Sem movimentos" : "Nada encontrado",
+                        texto: pesquisa.isEmpty
                             ? "Regista o primeiro no separador Registar."
-                            : "Tenta outra palavra: descrição, loja ou categoria.")
-                            .font(Tema.fonte(13))
-                            .foregroundStyle(Tema.tintaSuave)
-                    }
+                            : "Tenta outra palavra: descrição, loja ou categoria."
+                    )
                     .padding(.top, 12)
                 }
                 .listRowBackground(Color.clear)
@@ -110,14 +124,35 @@ struct MovimentosView: View {
                         LinhaDeTransacao(transacao: transacao, estilo: .extrato)
                             .contentShape(Rectangle())
                             .onTapGesture { transacaoAberta = transacao }
+                            // Deslizar para editar ou eliminar; o toque
+                            // longo dá as mesmas ações.
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button {
+                                    transacaoAEliminar = transacao
+                                } label: {
+                                    Label("Eliminar", systemImage: "trash")
+                                }
+                                .tint(Tema.negativo)
+                                Button {
+                                    transacaoEmEdicao = transacao
+                                } label: {
+                                    Label("Editar", systemImage: "pencil")
+                                }
+                                .tint(Tema.douradoEscuro)
+                            }
+                            .contextMenu {
+                                Button("Editar", systemImage: "pencil") { transacaoEmEdicao = transacao }
+                                Button("Eliminar", systemImage: "trash", role: .destructive) {
+                                    transacaoAEliminar = transacao
+                                }
+                            }
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets(top: 0, leading: Tema.margemDoEcra, bottom: 0, trailing: Tema.margemDoEcra))
                     }
-                    .onDelete { apagar($0, de: grupo.transacoes) }
                 } header: {
-                    // Divisor entre dias + "Hoje, 24 setembro" com o saldo
-                    // do dia em dourado — como no frame.
+                    // Divisor entre dias + "Hoje, 1 outubro" com o saldo
+                    // real do dia em cinzento neutro.
                     VStack(alignment: .leading, spacing: 12) {
                         if indice > 0 {
                             Divider().overlay(Tema.separador)
@@ -129,9 +164,10 @@ struct MovimentosView: View {
                                 .textCase(nil)
                             Spacer()
                             Text(saldoDoDia(grupo.transacoes))
-                                .font(Tema.fonte(12, .medium))
+                                .font(Tema.fonte(13, .medium))
                                 .monospacedDigit()
-                                .foregroundStyle(Tema.douradoEscuro)
+                                .foregroundStyle(Tema.tintaSuave)
+                                .accessibilityLabel("Saldo do dia: \(saldoDoDia(grupo.transacoes))")
                         }
                     }
                     .listRowInsets(EdgeInsets(top: 6, leading: Tema.margemDoEcra, bottom: 0, trailing: Tema.margemDoEcra))
@@ -146,7 +182,7 @@ struct MovimentosView: View {
                     ) {
                         Text("Exportar movimentos em CSV")
                             .font(Tema.fonte(13, .medium))
-                            .foregroundStyle(Tema.douradoEscuro)
+                            .textoDourado()
                             .frame(maxWidth: .infinity)
                     }
                     .padding(.vertical, 8)
@@ -159,10 +195,10 @@ struct MovimentosView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Tema.fundo)
-        // As linhas reorganizam-se com mola ao filtrar ou pesquisar.
+        // As linhas reorganizam-se ao filtrar; a pesquisa atualiza sem animar,
+        // para escrever não engasgar a lista.
         .animation(.snappy, value: filtro)
         .animation(.snappy, value: categoriaFiltrada)
-        .animation(.snappy, value: pesquisa)
         .sheet(item: $transacaoAberta) { transacao in
             MovimentoView(
                 transacao: transacao,
@@ -191,38 +227,59 @@ struct MovimentosView: View {
                     contexto.delete(transacao)
                     try? contexto.save()
                     transacaoEmEdicao = nil
-                }
+                },
+                conta: transacao.conta,
+                aoEscolherConta: { transacao.conta = $0 }
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
+        .confirmationDialog(
+            "Eliminar este movimento?",
+            isPresented: Binding(
+                get: { transacaoAEliminar != nil },
+                set: { if !$0 { transacaoAEliminar = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: transacaoAEliminar
+        ) { transacao in
+            Button("Eliminar", role: .destructive) { eliminar(transacao) }
+            Button("Cancelar", role: .cancel) { transacaoAEliminar = nil }
+        } message: { transacao in
+            Text("\(transacao.loja ?? transacao.descricao) · \(FormatadorDeMoeda.texto(transacao.valor)). Não é possível desfazer.")
+        }
     }
 
-    /// A fila de filtros do frame: chips Todos/Despesas/Receitas e o ícone
-    /// de exportação à direita.
-    private var filtros: some View {
-        HStack(spacing: 8) {
-            ForEach(Filtro.allCases, id: \.self) { opcao in
-                Button {
-                    withAnimation(.snappy) { filtro = opcao }
-                } label: {
-                    Text(opcao.rawValue)
-                        .font(Tema.fonte(12, filtro == opcao ? .semibold : .regular))
-                        .foregroundStyle(filtro == opcao ? Tema.douradoEscuro : Tema.tintaSuave)
-                        .padding(.horizontal, 15)
-                        .frame(height: 32)
-                        .background {
-                            // O fundo areia desliza entre os filtros.
-                            if filtro == opcao {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Tema.areia)
-                                    .matchedGeometryEffect(id: "filtro", in: espacoDoSeletor)
-                            }
-                        }
-                }
-                .accessibilityAddTraits(filtro == opcao ? [.isSelected] : [])
+    /// A etiqueta da categoria filtrada, com um toque para a tirar —
+    /// assim o filtro nunca fica escondido atrás do ícone.
+    private func etiquetaDaCategoria(_ nome: String) -> some View {
+        Button {
+            withAnimation(.snappy) { categoriaFiltrada = nil }
+        } label: {
+            HStack(spacing: 6) {
+                Text(nome)
+                    .font(Tema.fonte(12, .semibold))
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .bold))
             }
-            // O ícone de filtro vem logo a seguir aos chips, como no frame.
+            .foregroundStyle(Tema.ouro)
+            .padding(.horizontal, 12)
+            .frame(height: 28)
+            .background(Tema.areia, in: Capsule())
+        }
+        .buttonStyle(.borderless)
+        .accessibilityLabel("Filtro: \(nome). Toca para remover.")
+    }
+
+    /// A fila de filtros: o seletor segmentado da app e, ao lado, o filtro
+    /// por categoria num botão redondo (nunca um ícone solto).
+    private var filtros: some View {
+        HStack(spacing: 10) {
+            SeletorSegmentado(
+                opcoes: Filtro.allCases,
+                escolhida: $filtro,
+                titulo: \.rawValue
+            )
             Menu {
                 Picker("Categoria", selection: $categoriaFiltrada) {
                     Text("Todas as categorias").tag(String?.none)
@@ -232,67 +289,79 @@ struct MovimentosView: View {
                 }
             } label: {
                 Image(systemName: "line.3.horizontal.decrease")
-                    .font(Tema.fonte(15))
-                    .foregroundStyle(categoriaFiltrada == nil ? Tema.tintaFosca : Tema.douradoEscuro)
-                    .padding(.leading, 4)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(categoriaFiltrada == nil ? AnyShapeStyle(Tema.tinta) : Tema.ouro)
+                    .frame(width: 38, height: 38)
+                    .background(categoriaFiltrada == nil ? Tema.bege : Tema.areia, in: Circle())
+                    .contentShape(Circle())
             }
             .accessibilityLabel("Filtrar por categoria")
-            Spacer()
+            .accessibilityValue(categoriaFiltrada ?? "Todas as categorias")
         }
         // Dentro de uma linha de List, só com .borderless é que cada
         // botão recebe o toque individualmente.
         .buttonStyle(.borderless)
     }
 
-    /// O cartão areia com o resumo do mês: movimentos, despesas e receitas.
+    /// Saldo do mês: receitas menos despesas.
+    private var saldoDoMes: Decimal { receitasDoMes - despesasDoMes }
+
+    /// O resumo do mês numa linha: "↓ 986,48 € · ↑ 1 450,00 €" e o saldo
+    /// à direita. Os números completos vivem no Resumo; aqui é só contexto.
     private var resumoDoMes: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(nomeDoMes)
-                    .font(Tema.fonte(13, .medium))
-                    .foregroundStyle(Tema.tinta)
-                Spacer()
-                Text("\(doMes.count) movimentos")
-                    .font(Tema.fonte(11))
-                    .foregroundStyle(Tema.tintaSuave)
+        HStack(spacing: 10) {
+            HStack(spacing: 6) {
+                parcela(despesasDoMes, simbolo: "arrow.down")
+                Text("·").foregroundStyle(Tema.tintaSuave)
+                parcela(receitasDoMes, simbolo: "arrow.up")
             }
-            HStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Despesas")
-                        .font(Tema.fonte(11))
-                        .foregroundStyle(Tema.tintaSuave)
-                    Text(FormatadorDeMoeda.texto(despesasDoMes))
-                        .font(Tema.fonte(20, .medium))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                        .foregroundStyle(Tema.tinta)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Receitas")
-                        .font(Tema.fonte(11))
-                        .foregroundStyle(Tema.tintaSuave)
-                    Text(FormatadorDeMoeda.texto(receitasDoMes))
-                        .font(Tema.fonte(20, .medium))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                        .foregroundStyle(Tema.tinta)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            .font(Tema.fonte(13, .medium))
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            Spacer(minLength: 6)
+            Text(comSinal(saldoDoMes))
+                .font(Tema.fonte(13, .semibold))
+                .monospacedDigit()
+                .foregroundStyle(Tema.tinta)
+                .padding(.horizontal, 10)
+                .frame(height: 26)
+                .background(Tema.superficie.opacity(0.7), in: Capsule())
         }
-        .padding(18)
-        .background(Tema.areia, in: RoundedRectangle(cornerRadius: Tema.Raio.cartao))
-        .accessibilityElement(children: .combine)
+        .padding(.horizontal, 16)
+        .frame(height: 50)
+        .cartaoCafe(raio: Tema.Raio.campo)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "\(nomeDoMes): despesas \(FormatadorDeMoeda.texto(despesasDoMes)), receitas \(FormatadorDeMoeda.texto(receitasDoMes)), saldo \(comSinal(saldoDoMes))"
+        )
     }
 
-    /// Saldo do dia à direita do cabeçalho ("−32,04 €").
+    private func parcela(_ valor: Decimal, simbolo: String) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: simbolo)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Tema.tintaSuave)
+            Text(FormatadorDeMoeda.texto(valor))
+                .foregroundStyle(Tema.tinta)
+        }
+    }
+
+    /// "+12,00 €", "−32,04 €" ou "0,00 €", sempre com o menos tipográfico.
+    private func comSinal(_ valor: Decimal) -> String {
+        let texto = FormatadorDeMoeda.textoAbsoluto(valor)
+        if valor > .zero { return "+\(texto)" }
+        if valor < .zero { return "\u{2212}\(texto)" }
+        return texto
+    }
+
+    /// Saldo real do dia à direita do cabeçalho: receitas menos despesas
+    /// só das linhas visíveis desse dia ("−13,30 €").
     private func saldoDoDia(_ transacoes: [Transacao]) -> String {
         let saldo = transacoes.reduce(Decimal.zero) { total, transacao in
             transacao.tipo == .receita ? total + transacao.valor : total - transacao.valor
         }
-        let texto = FormatadorDeMoeda.texto(saldo < .zero ? -saldo : saldo)
-        return saldo < .zero ? "−\(texto)" : "+\(texto)"
+        return comSinal(saldo)
     }
 
     /// Campo de pesquisa no estilo dos cartões do frame: cápsula branca
@@ -302,7 +371,12 @@ struct MovimentosView: View {
             Image(systemName: "magnifyingglass")
                 .font(Tema.fonte(14))
                 .foregroundStyle(Tema.tintaSuave)
-            TextField("Pesquisar comerciante ou categoria", text: $pesquisa)
+            TextField(
+                text: $pesquisa,
+                prompt: Text("Pesquisar comerciante ou categoria").foregroundStyle(Tema.placeholder)
+            ) {
+                Text("Pesquisar")
+            }
                 .font(Tema.fonte(12))
                 .foregroundStyle(Tema.tinta)
                 .autocorrectionDisabled()
@@ -320,7 +394,7 @@ struct MovimentosView: View {
         .padding(.leading, 14)
         .padding(.trailing, 10)
         .frame(height: 48)
-        .background(Tema.superficie, in: RoundedRectangle(cornerRadius: 16))
+        .cartao(raio: 16)
         .buttonStyle(.borderless)
     }
 
@@ -333,9 +407,12 @@ struct MovimentosView: View {
         return "\(semana.prefix(1).uppercased() + semana.dropFirst()), \(diaEMes)"
     }
 
-    private func apagar(_ indices: IndexSet, de grupo: [Transacao]) {
-        indices.map { grupo[$0] }.forEach(contexto.delete)
-        try? contexto.save()
+    private func eliminar(_ transacao: Transacao) {
+        transacaoAEliminar = nil
+        withAnimation(.snappy) {
+            contexto.delete(transacao)
+            try? contexto.save()
+        }
     }
 
     // MARK: - Exportação
